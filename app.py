@@ -1,5 +1,5 @@
-
 import streamlit as st
+import pandas as pd
 from PIL import Image
 
 st.set_page_config(
@@ -8,82 +8,72 @@ st.set_page_config(
     layout="wide"
 )
 
+# LOGOS
 abt_logo = Image.open("ABT TRAC Logo.jpg")
 inov8v_logo = Image.open("Innov8v Marine Logo.png")
 
-st.markdown("""
-<style>
-.stApp {
-    background-color: #f7f9fb;
-}
+# LOAD DATA
+@st.cache_data
+def load_data():
+    sales_orders = pd.read_excel("Sales Order Record.xlsx")
+    line_items = pd.read_excel("Line Item for SOs.xlsx")
+    return sales_orders, line_items
 
-h1, h2, h3 {
-    color: #062B45;
-}
+sales_orders, line_items = load_data()
 
-section[data-testid="stSidebar"] {
-    background-color: #062B45;
-}
-
-section[data-testid="stSidebar"] * {
-    color: white;
-}
-
-.stButton > button {
-    background-color: #0077B6;
-    color: white;
-    border-radius: 8px;
-    border: none;
-    padding: 0.5rem 1rem;
-}
-
-.stButton > button:hover {
-    background-color: #00B4D8;
-    color: white;
-}
-</style>
-""", unsafe_allow_html=True)
-
-col1, col2 = st.columns([5, 1])
+# HEADER
+col1, col2 = st.columns([6,1])
 
 with col1:
-    st.image(abt_logo, width=350)
-    st.markdown("## Parts & Boat Lookup Dashboard")
-    st.caption("Search parts, sales orders, and vessel/customer history")
+    st.image(abt_logo, width=250)
 
 with col2:
     st.image(inov8v_logo, width=120)
 
-st.divider()
+st.title("Parts & Boat Lookup Dashboard")
 
-# BOAT LOOKUP FIRST
+st.markdown("---")
 
-st.subheader("Boat / Customer Lookup")
+# BOAT LOOKUP
+st.header("Boat / Customer Lookup")
 
 boat_search = st.text_input(
     "Search by boat name, customer, ship-to, or sales order"
 )
 
 if st.button("Search Boats"):
-    st.info(f"Searching boats/customers for: {boat_search}")
 
-st.divider()
+    search_term = boat_search.lower()
 
-# PART LOOKUP SECOND
+    matches = sales_orders[
+        sales_orders.astype(str)
+        .apply(lambda col: col.str.lower().str.contains(search_term, na=False))
+        .any(axis=1)
+    ]
 
-st.subheader("Part Lookup")
+    st.write(f"Found {len(matches)} matching records")
+
+    st.dataframe(matches)
+
+st.markdown("---")
+
+# PART LOOKUP
+st.header("Part Lookup")
 
 part_search = st.text_input(
-    "Search by part number, description, or keyword"
+    "Search by part number or description"
 )
 
 if st.button("Search Parts"):
-    st.info(f"Searching parts for: {part_search}")
 
-st.divider()
+    search_term = part_search.lower()
 
-st.subheader("Current Focus")
+    matches = line_items[
+        line_items.astype(str)
+        .apply(lambda col: col.str.lower().str.contains(search_term, na=False))
+        .any(axis=1)
+    ]
 
-st.write(
-    "This version is focused on boat/customer lookup and parts lookup."
-)
+    st.write(f"Found {len(matches)} matching records")
+
+    st.dataframe(matches)
