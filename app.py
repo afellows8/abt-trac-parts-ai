@@ -8,8 +8,8 @@ st.set_page_config(
     layout="wide"
 )
 
-abt_logo = Image.open("Assets/ABT TRAC Logo.jpg")
-inov8v_logo = Image.open("Assets/Innov8v Marine Logo.png")
+abt_logo = Image.open("ABT TRAC Logo.jpg")
+inov8v_logo = Image.open("Innov8v Marine Logo.png")
 
 st.markdown("""
 <style>
