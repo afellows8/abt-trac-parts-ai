@@ -82,7 +82,6 @@ st.markdown(
 abt_logo = Image.open("ABT TRAC Logo.jpg")
 innov8v_logo = Image.open("Innov8v Marine Logo.png")
 
-st.image("Nordhavn N100 Serenity.jpg", use_container_width=True)
 
 col1, col2 = st.columns([6,1])
 
