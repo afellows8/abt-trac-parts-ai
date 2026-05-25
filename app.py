@@ -4,15 +4,77 @@ from PIL import Image
 
 st.set_page_config(
     page_title="ABT-TRAC Parts Sales AI",
-    page_icon="⚓",
     layout="wide"
 )
 
-# LOGOS
-abt_logo = Image.open("ABT TRAC Logo.jpg")
-inov8v_logo = Image.open("Innov8v Marine Logo.png")
+hero_image = "Nordhavn N100 Serenity.jpg"
 
-# LOAD DATA
+st.markdown(
+    f"""
+    <style>
+    .stApp {{
+        background-image:
+        linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.45)),
+        url("{hero_image}");
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+    }}
+
+    .main {{
+        background-color: rgba(255,255,255,0.90);
+        padding: 2rem;
+        border-radius: 20px;
+    }}
+
+    div[data-baseweb="input"] {{
+        background-color: white;
+        border-radius: 12px;
+        border: 2px solid #0B3D5C;
+        padding: 8px;
+    }}
+
+    .stButton button {{
+        background-color: #0B3D5C;
+        color: white;
+        border-radius: 12px;
+        font-weight: bold;
+        padding: 10px 24px;
+        border: none;
+    }}
+
+    .stButton button:hover {{
+        background-color: #145A86;
+        color: white;
+    }}
+
+    h1, h2, h3 {{
+        color: #0B3D5C;
+    }}
+
+    p {{
+        color: #222222;
+    }}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+abt_logo = Image.open("ABT TRAC Logo.jpg")
+innov8v_logo = Image.open("Innov8v Marine Logo.png")
+
+col1, col2 = st.columns([6,1])
+
+with col1:
+    st.image(abt_logo, width=350)
+
+with col2:
+    st.image(innov8v_logo, width=120)
+
+st.title("ABT-TRAC Parts Sales AI")
+
+st.markdown("### Boat / Customer Lookup")
+
 @st.cache_data
 def load_data():
     sales_orders = pd.read_excel("Sales Order Record.xlsx")
@@ -21,59 +83,74 @@ def load_data():
 
 sales_orders, line_items = load_data()
 
-# HEADER
-col1, col2 = st.columns([6,1])
-
-with col1:
-    st.image(abt_logo, width=250)
-
-with col2:
-    st.image(inov8v_logo, width=120)
-
-st.title("Parts & Boat Lookup Dashboard")
-
-st.markdown("---")
-
-# BOAT LOOKUP
-st.header("Boat / Customer Lookup")
-
 boat_search = st.text_input(
     "Search by boat name, customer, ship-to, or sales order"
 )
 
 if st.button("Search Boats"):
 
-    search_term = boat_search.lower()
+    if boat_search:
 
-    matches = sales_orders[
-        sales_orders.astype(str)
-        .apply(lambda col: col.str.lower().str.contains(search_term, na=False))
-        .any(axis=1)
-    ]
+        boat_results = sales_orders[
+            sales_orders.astype(str)
+            .apply(lambda row: row.str.contains(
+                boat_search,
+                case=False,
+                na=False
+            ).any(), axis=1)
+        ]
 
-    st.write(f"Found {len(matches)} matching records")
+        if len(boat_results) > 0:
 
-    st.dataframe(matches)
+            st.success(f"Found {len(boat_results)} matching records")
+
+            st.dataframe(
+                boat_results,
+                use_container_width=True
+            )
+
+        else:
+            st.warning("No matching boats/customers found")
 
 st.markdown("---")
 
-# PART LOOKUP
-st.header("Part Lookup")
+st.markdown("### Part Lookup")
 
 part_search = st.text_input(
-    "Search by part number or description"
+    "Search by part number, description, or keyword"
 )
 
 if st.button("Search Parts"):
 
-    search_term = part_search.lower()
+    if part_search:
 
-    matches = line_items[
-        line_items.astype(str)
-        .apply(lambda col: col.str.lower().str.contains(search_term, na=False))
-        .any(axis=1)
-    ]
+        part_results = line_items[
+            line_items.astype(str)
+            .apply(lambda row: row.str.contains(
+                part_search,
+                case=False,
+                na=False
+            ).any(), axis=1)
+        ]
 
-    st.write(f"Found {len(matches)} matching records")
+        if len(part_results) > 0:
 
-    st.dataframe(matches)
+            st.success(f"Found {len(part_results)} matching parts")
+
+            st.dataframe(
+                part_results,
+                use_container_width=True
+            )
+
+        else:
+            st.warning("No matching parts found")
+
+st.markdown("---")
+
+st.markdown(
+    "### Current Focus\n"
+    "- Boat / Customer search\n"
+    "- Parts lookup\n"
+    "- ABT-TRAC branded interface\n"
+    "- Fast internal sales support"
+)
