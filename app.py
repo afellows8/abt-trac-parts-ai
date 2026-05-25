@@ -10,51 +10,70 @@ st.set_page_config(
 hero_image = "Nordhavn N100 Serenity.jpg"
 
 st.markdown(
-    f"""
+       """
     <style>
-    .stApp {{
-        background-image:
-        linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.45)),
-        url("{hero_image}");
+
+    .stApp {
+        background: linear-gradient(
+            rgba(5, 20, 35, 0.55),
+            rgba(5, 20, 35, 0.55)
+        ),
+        url("https://raw.githubusercontent.com/afellows8/abt-trac-parts-ai/main/Nordhavn%20N100%20Serenity.jpg");
+
         background-size: cover;
         background-position: center;
         background-attachment: fixed;
-    }}
+    }
 
-    .main {{
-        background-color: rgba(255,255,255,0.90);
+    .block-container {
+        background-color: rgba(255,255,255,0.82);
         padding: 2rem;
         border-radius: 20px;
-    }}
+        margin-top: 2rem;
+        margin-bottom: 2rem;
+    }
 
-    div[data-baseweb="input"] {{
-        background-color: white;
-        border-radius: 12px;
+    h1, h2, h3 {
+        color: #0B3D5C;
+        font-weight: 700;
+    }
+
+    p, label {
+        color: #1A1A1A;
+        font-weight: 500;
+    }
+
+    div[data-baseweb="input"] {
+        background-color: rgba(255,255,255,0.96);
+        border-radius: 14px;
         border: 2px solid #0B3D5C;
-        padding: 8px;
-    }}
+        padding: 6px;
+    }
 
-    .stButton button {{
+    input {
+        color: #000000 !important;
+        font-size: 18px !important;
+    }
+
+    .stButton button {
         background-color: #0B3D5C;
         color: white;
-        border-radius: 12px;
+        border-radius: 14px;
         font-weight: bold;
-        padding: 10px 24px;
         border: none;
-    }}
+        padding: 12px 24px;
+        transition: 0.3s;
+    }
 
-    .stButton button:hover {{
+    .stButton button:hover {
         background-color: #145A86;
         color: white;
-    }}
+    }
 
-    h1, h2, h3 {{
-        color: #0B3D5C;
-    }}
+    hr {
+        border-top: 1px solid rgba(255,255,255,0.3);
+    }
 
-    p {{
-        color: #222222;
-    }}
     </style>
     """,
     unsafe_allow_html=True
