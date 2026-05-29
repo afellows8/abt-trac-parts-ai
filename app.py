@@ -48,7 +48,7 @@ with col2:
     st.image(inov8v_logo, width=120)
 
 st.title("ABT-TRAC Marine AI Assistant")
-st.write("Ask about boats, customers, sales orders, parts, invoices, shipment history, and actuator seal kit opportunities.")
+st.write("Ask about boats, customers, sales orders, parts, invoices, shipment history, service opportunities, and upgrade opportunities.")
 
 @st.cache_data
 def load_data():
@@ -76,12 +76,14 @@ def load_data():
 sales_orders, line_items, invoices, seal_kits = load_data()
 
 def find_cols(df, keywords):
-    cols = []
-    for col in df.columns:
-        c = str(col).lower()
-        if any(k in c for k in keywords):
-            cols.append(col)
-    return cols
+    return [col for col in df.columns if any(k in str(col).lower() for k in keywords)]
+
+def get_first_matching_col(df, keywords):
+    cols = find_cols(df, keywords)
+    return cols[0] if cols else None
+
+def normalize_part(value):
+    return str(value).strip().upper().replace(" ", "").replace("-", "")
 
 def extract_search_terms(question):
     question = str(question).lower()
@@ -89,24 +91,23 @@ def extract_search_terms(question):
         "what","do","we","know","about","tell","me","show","find","for",
         "the","a","an","of","and","or","to","history","records","record",
         "boat","customer","sales","order","so","invoice","part","parts",
-        "needs","need","seal","kit","actuator"
+        "needs","need","seal","kit","actuator","upgrade","service"
     }
 
     numbers = re.findall(r"\d+", question)
     words = re.findall(r"[a-zA-Z0-9\-]+", question)
-
     keywords = [w for w in words if w not in stop_words and len(w) >= 3]
 
     terms = numbers + keywords
-    clean = []
+    clean_terms = []
     seen = set()
 
     for term in terms:
         if term not in seen:
-            clean.append(term)
+            clean_terms.append(term)
             seen.add(term)
 
-    return clean
+    return clean_terms
 
 def search_df(df, question, max_rows=50):
     terms = extract_search_terms(question)
@@ -124,16 +125,12 @@ def search_df(df, question, max_rows=50):
 
     return results.drop(columns=["_search_text"], errors="ignore").head(max_rows)
 
-def get_first_matching_col(df, keywords):
-    cols = find_cols(df, keywords)
-    return cols[0] if cols else None
+def compact_table_text(df, max_rows=20):
+    if df.empty:
+        return "No matching records found."
+    return df.head(max_rows).to_string(index=False)
 
-def normalize_part(value):
-    return str(value).strip().upper().replace(" ", "").replace("-", "")
-
-def analyze_actuator_seal_opportunity(question, sales_matches):
-    today = pd.Timestamp(datetime.today().date())
-
+def get_related_history(question, sales_matches):
     original_so_col = get_first_matching_col(
         sales_orders,
         ["original so", "orig so", "original sales order", "original order"]
@@ -143,42 +140,18 @@ def analyze_actuator_seal_opportunity(question, sales_matches):
     so_cols_line = find_cols(line_items, ["sales order", "so number", "order number", "so"])
     so_cols_inv = find_cols(invoices, ["sales order", "so number", "order number", "so"])
 
-    part_cols = find_cols(line_items, ["part", "item", "sku", "number"])
-    date_cols_inv = find_cols(invoices, ["ship date", "shipdate", "invoice date", "date"])
-
-    seal_part_col = get_first_matching_col(seal_kits, ["part", "item", "sku", "number"])
-
-    if not seal_part_col:
-        return {
-            "status": "Could not analyze",
-            "message": "No part number column found in actuator_seal_kits.xlsx.",
-            "seal_rows": pd.DataFrame()
-        }
-
-    seal_parts = set(seal_kits[seal_part_col].dropna().map(normalize_part))
-
-    if not seal_parts:
-        return {
-            "status": "Could not analyze",
-            "message": "No seal kit part numbers found in actuator_seal_kits.xlsx.",
-            "seal_rows": pd.DataFrame()
-        }
-
-    original_sos = set()
+    original_sos = set(re.findall(r"\d+", str(question)))
 
     if original_so_col and not sales_matches.empty:
         original_sos.update(
             sales_matches[original_so_col].dropna().astype(str).str.strip().tolist()
         )
 
-    question_numbers = re.findall(r"\d+", question)
-    original_sos.update(question_numbers)
-
     original_sos = {x for x in original_sos if x and x.lower() != "nan"}
 
     related_sales = pd.DataFrame()
 
-    if original_sos and original_so_col:
+    if original_so_col and original_sos:
         related_sales = sales_orders[
             sales_orders[original_so_col].astype(str).str.strip().isin(original_sos)
         ]
@@ -186,7 +159,7 @@ def analyze_actuator_seal_opportunity(question, sales_matches):
     if related_sales.empty:
         related_sales = sales_matches.copy()
 
-    related_sos = set()
+    related_sos = set(original_sos)
 
     for col in so_cols_sales:
         if col in related_sales.columns:
@@ -194,45 +167,70 @@ def analyze_actuator_seal_opportunity(question, sales_matches):
                 related_sales[col].dropna().astype(str).str.strip().tolist()
             )
 
-    related_sos.update(original_sos)
     related_sos = {x for x in related_sos if x and x.lower() != "nan"}
 
     related_lines = pd.DataFrame()
-
     for col in so_cols_line:
-        matches = line_items[line_items[col].astype(str).str.strip().isin(related_sos)]
-        related_lines = pd.concat([related_lines, matches])
+        if col in line_items.columns:
+            related_lines = pd.concat([
+                related_lines,
+                line_items[line_items[col].astype(str).str.strip().isin(related_sos)]
+            ])
 
-    related_lines = related_lines.drop_duplicates()
+    related_invoices = pd.DataFrame()
+    for col in so_cols_inv:
+        if col in invoices.columns:
+            related_invoices = pd.concat([
+                related_invoices,
+                invoices[invoices[col].astype(str).str.strip().isin(related_sos)]
+            ])
+
+    return (
+        related_sales.drop_duplicates(),
+        related_lines.drop_duplicates(),
+        related_invoices.drop_duplicates(),
+        related_sos
+    )
+
+def analyze_actuator_seal_service(question, sales_matches):
+    today = pd.Timestamp(datetime.today().date())
+
+    related_sales, related_lines, related_invoices, related_sos = get_related_history(question, sales_matches)
+
+    part_cols = find_cols(line_items, ["part", "item", "sku", "number"])
+    so_cols_line = find_cols(line_items, ["sales order", "so number", "order number", "so"])
+    so_cols_inv = find_cols(invoices, ["sales order", "so number", "order number", "so"])
+    date_cols_inv = find_cols(invoices, ["ship date", "shipdate", "invoice date", "date"])
+
+    seal_part_col = get_first_matching_col(seal_kits, ["part", "item", "sku", "number"])
+
+    if not seal_part_col:
+        return "REVIEW", "No part number column found in actuator_seal_kits.xlsx.", pd.DataFrame()
+
+    seal_parts = set(seal_kits[seal_part_col].dropna().map(normalize_part))
 
     seal_rows = pd.DataFrame()
-
     for col in part_cols:
-        matches = related_lines[
-            related_lines[col].map(normalize_part).isin(seal_parts)
-        ]
+        matches = related_lines[related_lines[col].map(normalize_part).isin(seal_parts)]
         seal_rows = pd.concat([seal_rows, matches])
 
     seal_rows = seal_rows.drop_duplicates()
 
     seal_sos = set()
-
     for col in so_cols_line:
         if col in seal_rows.columns:
-            seal_sos.update(
-                seal_rows[col].dropna().astype(str).str.strip().tolist()
-            )
+            seal_sos.update(seal_rows[col].dropna().astype(str).str.strip().tolist())
 
     seal_invoice_rows = pd.DataFrame()
-
     for col in so_cols_inv:
-        matches = invoices[invoices[col].astype(str).str.strip().isin(seal_sos)]
-        seal_invoice_rows = pd.concat([seal_invoice_rows, matches])
+        seal_invoice_rows = pd.concat([
+            seal_invoice_rows,
+            invoices[invoices[col].astype(str).str.strip().isin(seal_sos)]
+        ])
 
     seal_invoice_rows = seal_invoice_rows.drop_duplicates()
 
     last_date = None
-
     for col in date_cols_inv:
         dates = pd.to_datetime(seal_invoice_rows[col], errors="coerce").dropna()
         if not dates.empty:
@@ -241,44 +239,49 @@ def analyze_actuator_seal_opportunity(question, sales_matches):
                 last_date = candidate
 
     if seal_rows.empty:
-        return {
-            "status": "FLAG",
-            "message": "No actuator seal kit purchase found for the related boat/original SO history. This may be a sales opportunity.",
-            "seal_rows": seal_rows
-        }
+        return "FLAG", "No actuator seal kit purchase found in related history. Recommended service follow-up.", seal_rows
 
     if last_date is None:
-        return {
-            "status": "REVIEW",
-            "message": "Actuator seal kit purchase found, but no usable invoice/ship date was found. Review manually.",
-            "seal_rows": seal_rows
-        }
+        return "REVIEW", "Actuator seal kit found, but no usable ship/invoice date found. Review manually.", seal_rows
 
     years_since = round((today - last_date).days / 365.25, 1)
 
     if years_since >= 5:
-        status = "FLAG"
-        message = f"Last actuator seal kit shipment appears to be {last_date.date()}, about {years_since} years ago. Flag this boat/order for actuator seal kit follow-up."
+        return "FLAG", f"Last actuator seal kit shipment appears to be {last_date.date()}, about {years_since} years ago. Recommended service follow-up.", seal_rows
+
+    return "OK", f"Last actuator seal kit shipment appears to be {last_date.date()}, about {years_since} years ago. No 5-year service flag yet.", seal_rows
+
+def analyze_tracstar_upgrade(question, sales_matches):
+    related_sales, related_lines, related_invoices, related_sos = get_related_history(question, sales_matches)
+
+    part_cols = find_cols(line_items, ["part", "item", "sku", "number"])
+
+    tracstar_rows = pd.DataFrame()
+
+    for col in part_cols:
+        matches = related_lines[
+            related_lines[col].map(normalize_part) == normalize_part("31061")
+        ]
+        tracstar_rows = pd.concat([tracstar_rows, matches])
+
+    tracstar_rows = tracstar_rows.drop_duplicates()
+
+    if tracstar_rows.empty:
+        status = "UPGRADE"
+        message = "No PN 31061 found in related order history. Potential TRACStar/Stabilization At Rest upgrade candidate."
     else:
         status = "OK"
-        message = f"Last actuator seal kit shipment appears to be {last_date.date()}, about {years_since} years ago. No 5-year flag yet."
+        message = "PN 31061 found in related order history. TRACStar upgrade may already have been purchased or quoted."
 
-    return {
-        "status": status,
-        "message": message,
-        "seal_rows": seal_rows
-    }
+    literature_url = "https://raw.githubusercontent.com/afellows8/abt-trac-parts-ai/main/TRACStar.pdf"
 
-def compact_table_text(df, max_rows=20):
-    if df.empty:
-        return "No matching records found."
-    return df.head(max_rows).to_string(index=False)
+    return status, message, tracstar_rows, literature_url
 
 st.header("Ask ABT Marine AI")
 
 question = st.text_area(
     "Ask a question",
-    placeholder="Example: What do we know about Odyssey? Does it need an actuator seal kit follow-up?"
+    placeholder="Example: What do we know about Odyssey? Does it need service or any upgrades?"
 )
 
 if st.button("Ask AI"):
@@ -287,7 +290,7 @@ if st.button("Ask AI"):
         st.warning("Enter a question first.")
 
     else:
-        with st.spinner("Searching records, checking seal kit history, and asking AI..."):
+        with st.spinner("Searching records, checking service needs, checking upgrade opportunities, and asking AI..."):
 
             extracted_terms = extract_search_terms(question)
 
@@ -295,7 +298,8 @@ if st.button("Ask AI"):
             line_matches = search_df(line_items, question, max_rows=75)
             invoice_matches = search_df(invoices, question, max_rows=50)
 
-            seal_analysis = analyze_actuator_seal_opportunity(question, sales_matches)
+            service_status, service_message, seal_rows = analyze_actuator_seal_service(question, sales_matches)
+            upgrade_status, upgrade_message, tracstar_rows, tracstar_url = analyze_tracstar_upgrade(question, sales_matches)
 
             context = f"""
 USER QUESTION:
@@ -304,9 +308,14 @@ USER QUESTION:
 SEARCH TERMS USED:
 {extracted_terms}
 
-ACTUATOR SEAL KIT FLAG:
-Status: {seal_analysis["status"]}
-Message: {seal_analysis["message"]}
+RECOMMENDED SERVICE:
+Actuator Seal Kit Status: {service_status}
+Actuator Seal Kit Message: {service_message}
+
+UPGRADE OPPORTUNITIES:
+TRACStar Status: {upgrade_status}
+TRACStar Message: {upgrade_message}
+TRACStar Literature: {tracstar_url}
 
 MATCHING SALES ORDER RECORDS:
 {compact_table_text(sales_matches)}
@@ -318,14 +327,17 @@ MATCHING INVOICE / SHIP DATE RECORDS:
 {compact_table_text(invoice_matches)}
 
 MATCHING ACTUATOR SEAL KIT ROWS:
-{compact_table_text(seal_analysis["seal_rows"])}
+{compact_table_text(seal_rows)}
+
+MATCHING TRACSTAR PN 31061 ROWS:
+{compact_table_text(tracstar_rows)}
 
 IMPORTANT NOTES:
 - Use only the provided records.
-- Invoice ship date is the closest available date to shipment to the customer.
-- The actuator seal kit list comes from actuator_seal_kits.xlsx.
-- If the last actuator seal kit shipment is 5+ years ago, flag it as a follow-up opportunity.
-- If no actuator seal kit purchase is found, flag it as a possible opportunity.
+- Invoice ship date is the closest available shipment date to the customer.
+- Recommended Service includes actuator seal kit follow-up.
+- Upgrade Opportunities includes TRACStar if PN 31061 is not found in related order history.
+- TRACStar literature is available at the provided PDF link.
 """
 
             client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
@@ -338,13 +350,17 @@ IMPORTANT NOTES:
                         "content": """
 You are an internal ABT-TRAC / Inov8v Marine AI assistant.
 
-Help sales and service users understand vessel, customer, part, sales order, invoice, shipment, and actuator seal kit history.
+Organize answers into:
+1. Summary
+2. Recommended Service
+3. Upgrade Opportunities
+4. Supporting Records
 
-Use only the spreadsheet records provided.
+Use only the records provided.
 Do not invent facts.
-If dates are available, organize chronologically.
-Clearly identify actuator seal kit follow-up opportunities.
-Be concise and practical for a marine parts salesperson.
+Clearly flag actuator seal kit service opportunities.
+Clearly flag TRACStar upgrade opportunities when PN 31061 is not found.
+Be concise and useful for a marine parts salesperson.
 """
                     },
                     {
@@ -358,12 +374,20 @@ Be concise and practical for a marine parts salesperson.
             st.subheader("AI Answer")
             st.write(response.choices[0].message.content)
 
-            if seal_analysis["status"] == "FLAG":
-                st.error(seal_analysis["message"])
-            elif seal_analysis["status"] == "REVIEW":
-                st.warning(seal_analysis["message"])
+            st.subheader("Recommended Service")
+            if service_status == "FLAG":
+                st.error(service_message)
+            elif service_status == "REVIEW":
+                st.warning(service_message)
             else:
-                st.success(seal_analysis["message"])
+                st.success(service_message)
+
+            st.subheader("Upgrade Opportunities")
+            if upgrade_status == "UPGRADE":
+                st.info(upgrade_message)
+                st.markdown(f"[Open TRACStar Literature PDF]({tracstar_url})")
+            else:
+                st.success(upgrade_message)
 
             st.caption(f"Search terms used: {', '.join(extracted_terms)}")
 
@@ -377,7 +401,10 @@ Be concise and practical for a marine parts salesperson.
             st.dataframe(invoice_matches, use_container_width=True)
 
             st.subheader("Matching Actuator Seal Kit Rows")
-            st.dataframe(seal_analysis["seal_rows"], use_container_width=True)
+            st.dataframe(seal_rows, use_container_width=True)
+
+            st.subheader("Matching TRACStar PN 31061 Rows")
+            st.dataframe(tracstar_rows, use_container_width=True)
 
 st.markdown("---")
-st.caption("AI answers are based on uploaded sales order, line item, invoice, and actuator seal kit records.")
+st.caption("AI answers are based on uploaded sales order, line item, invoice, actuator seal kit, and TRACStar upgrade records.")
