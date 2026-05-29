@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from PIL import Image
 from openai import OpenAI
+import re
 
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(
@@ -110,21 +111,71 @@ def load_data():
 sales_orders, line_items, invoices = load_data()
 
 # ---------------- SEARCH HELPERS ----------------
-def search_df(df, query, max_rows=40):
-    query = query.lower().strip()
+def extract_search_terms(question):
+    question = str(question).lower()
 
-    if not query:
-        return df.head(0)
+    stop_words = {
+        "what", "do", "we", "know", "about", "tell", "me", "show",
+        "find", "for", "the", "a", "an", "of", "and", "or", "to",
+        "history", "records", "record", "boat", "customer", "sales",
+        "order", "so", "invoice", "part", "parts"
+    }
 
-    results = df[
-        df["_search_text"].str.contains(
-            query,
-            na=False,
-            regex=False
-        )
+    numbers = re.findall(r"\d+", question)
+
+    words = re.findall(r"[a-zA-Z0-9\-]+", question)
+    keywords = [
+        word for word in words
+        if word not in stop_words and len(word) >= 3
     ]
 
-    return results.drop(columns=["_search_text"], errors="ignore").head(max_rows)
+    terms = numbers + keywords
+
+    seen = set()
+    clean_terms = []
+
+    for term in terms:
+        if term not in seen:
+            clean_terms.append(term)
+            seen.add(term)
+
+    return clean_terms
+
+
+def search_df(df, question, max_rows=40):
+    terms = extract_search_terms(question)
+
+    if not terms:
+        return df.head(0).drop(columns=["_search_text"], errors="ignore")
+
+    results = pd.DataFrame()
+
+    for term in terms:
+        matches = df[
+            df["_search_text"].str.contains(
+                term,
+                na=False,
+                regex=False
+            )
+        ]
+        results = pd.concat([results, matches])
+
+    if len(results) == 0:
+        fallback = str(question).lower().strip()
+        results = df[
+            df["_search_text"].str.contains(
+                fallback,
+                na=False,
+                regex=False
+            )
+        ]
+
+    results = results.drop_duplicates()
+
+    return results.drop(
+        columns=["_search_text"],
+        errors="ignore"
+    ).head(max_rows)
 
 
 def compact_table_text(df, max_rows=20):
@@ -139,7 +190,7 @@ st.header("Ask ABT Marine AI")
 
 question = st.text_area(
     "Ask a question",
-    placeholder="Example: What do we know about Odyssey? Build a timeline using sales orders, line items, and invoice ship dates."
+    placeholder="Example: What do we know about SO 31884? Or: What do we know about Odyssey?"
 )
 
 if st.button("Ask AI"):
@@ -150,6 +201,8 @@ if st.button("Ask AI"):
     else:
         with st.spinner("Searching records and asking AI..."):
 
+            extracted_terms = extract_search_terms(question)
+
             sales_matches = search_df(sales_orders, question, max_rows=40)
             line_matches = search_df(line_items, question, max_rows=60)
             invoice_matches = search_df(invoices, question, max_rows=40)
@@ -157,6 +210,9 @@ if st.button("Ask AI"):
             context = f"""
 USER QUESTION:
 {question}
+
+SEARCH TERMS USED:
+{extracted_terms}
 
 MATCHING SALES ORDER RECORDS:
 {compact_table_text(sales_matches)}
@@ -207,6 +263,8 @@ Be concise, practical, and useful for a marine parts salesperson.
 
             st.subheader("AI Answer")
             st.write(answer)
+
+            st.caption(f"Search terms used: {', '.join(extracted_terms)}")
 
             st.subheader("Matching Sales Orders")
             st.dataframe(sales_matches, use_container_width=True)
