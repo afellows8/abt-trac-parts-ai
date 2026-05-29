@@ -58,7 +58,7 @@ def load_data():
     line_items["_source"] = "Line Item"
     invoices["_source"] = "Invoice / Ship Date"
 
-    sales_orders["_search_text"] = sales_orders.astype(str).agg(" ".join, axis=1).str.lower()
+    sales_orders["_search_text"] = @st.cache_data def load_data():     sales_orders = pd.read_excel("Sales Order Record.xlsx")     line_items = pd.read_excel("Line Item for SOs.xlsx")     invoices = pd.read_excel("INVs_AsOf_05.20.2026.xlsx")      sales_orders["_source"] = "Sales Order Record"     line_items["_source"] = "Line Item"     invoices["_source"] = "Invoice / Ship Date"      sales_orders["_search_text"] = sales_orders.fillna("").astype(str).apply(lambda row: " ".join(row.values), axis=1).str.lower()     line_items["_search_text"] = line_items.fillna("").astype(str).apply(lambda row: " ".join(row.values), axis=1).str.lower()     invoices["_search_text"] = invoices.fillna("").astype(str).apply(lambda row: " ".join(row.values), axis=1).str.lower()      return sales_orders, line_items, invoices.str.lower()
     line_items["_search_text"] = line_items.astype(str).agg(" ".join, axis=1).str.lower()
     invoices["_search_text"] = invoices.astype(str).agg(" ".join, axis=1).str.lower()
 
