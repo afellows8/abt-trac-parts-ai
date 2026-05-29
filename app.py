@@ -1,179 +1,160 @@
 import streamlit as st
 import pandas as pd
 from PIL import Image
+from openai import OpenAI
 
-# ---------------- PAGE CONFIG ----------------
 st.set_page_config(
-    page_title="ABT-TRAC Parts Sales AI",
+    page_title="ABT-TRAC Marine AI",
     layout="wide"
 )
 
-# ---------------- LOAD LOGOS ----------------
-abt_logo = Image.open("ABT TRAC Logo.jpg")
-inov8v_logo = Image.open("Innov8v Marine Logo.png")
-
-# ---------------- CUSTOM STYLING ----------------
+# ---------- STYLE ----------
 st.markdown("""
 <style>
-
 [data-testid="stAppViewContainer"] {
-    background-image: linear-gradient(
-        rgba(255,255,255,0.82),
-        rgba(255,255,255,0.82)
-    ),
+    background-image: linear-gradient(rgba(255,255,255,0.82), rgba(255,255,255,0.82)),
     url("https://raw.githubusercontent.com/afellows8/abt-trac-parts-ai/main/Nordhavn%20N100%20Serenity.jpg");
-
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
 }
 
-/* Main title */
-h1 {
-    color: #1E2F4D;
-    font-size: 52px !important;
-    font-weight: 800;
-}
-
-/* Section headers */
-h2, h3 {
-    color: #1E2F4D;
-    font-weight: 700;
-}
-
-/* Search boxes */
-.stTextInput input {
-    background-color: rgba(255,255,255,0.92);
-    border-radius: 14px;
-    border: 2px solid #0D4F7C;
-    padding: 14px;
-    font-size: 18px;
-}
-
-/* Buttons */
 .stButton button {
-    background-color: #0D4F7C;
+    background-color: #0D4F7C !important;
     color: white !important;
     border-radius: 12px;
     padding: 12px 24px;
-    font-size: 18px;
-    font-weight: bold;
     border: none;
+    font-weight: bold;
 }
 
-/* Force button text white */
-.stButton button p {
+.stButton button * {
     color: white !important;
 }
-
-.stButton button span {
-    color: white !important;
-}
-
-/* Hover effect */
-.stButton button:hover {
-    background-color: #1478B5;
-    color: white !important;
-}
-
-/* Results boxes */
-.stDataFrame, .stTable {
-    background-color: rgba(255,255,255,0.92);
-    border-radius: 10px;
-    padding: 10px;
-}
-
-/* Info boxes */
-[data-testid="stMarkdownContainer"] {
-    color: #1E2F4D;
-}
-
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------- TOP LOGOS ----------------
-col1, col2 = st.columns([5, 1])
+# ---------- LOGOS ----------
+abt_logo = Image.open("ABT TRAC Logo.jpg")
+inov8v_logo = Image.open("Innov8v Marine Logo.png")
 
+col1, col2 = st.columns([5, 1])
 with col1:
     st.image(abt_logo, width=320)
-
 with col2:
     st.image(inov8v_logo, width=120)
 
-# ---------------- TITLE ----------------
-st.title("ABT-TRAC Parts Sales AI")
+st.title("ABT-TRAC Marine AI Assistant")
+st.write("Ask about boats, customers, sales orders, parts, invoices, and shipment history.")
 
-# ---------------- LOAD DATA ----------------
+# ---------- LOAD DATA FAST ----------
 @st.cache_data
 def load_data():
     sales_orders = pd.read_excel("Sales Order Record.xlsx")
     line_items = pd.read_excel("Line Item for SOs.xlsx")
-    return sales_orders, line_items
+    invoices = pd.read_excel("INVs_AsOf_05.20.2026.xlsx")
 
-sales_orders, line_items = load_data()
+    sales_orders["_source"] = "Sales Order Record"
+    line_items["_source"] = "Line Item"
+    invoices["_source"] = "Invoice / Ship Date"
 
-# ---------------- BOAT SEARCH ----------------
-st.header("Boat / Customer Lookup")
+    sales_orders["_search_text"] = sales_orders.astype(str).agg(" ".join, axis=1).str.lower()
+    line_items["_search_text"] = line_items.astype(str).agg(" ".join, axis=1).str.lower()
+    invoices["_search_text"] = invoices.astype(str).agg(" ".join, axis=1).str.lower()
 
-boat_search = st.text_input(
-    "Search by boat name, customer, ship-to, or sales order"
+    return sales_orders, line_items, invoices
+
+sales_orders, line_items, invoices = load_data()
+
+# ---------- HELPERS ----------
+def search_df(df, query, max_rows=40):
+    query = query.lower().strip()
+    if not query:
+        return df.head(0)
+
+    results = df[df["_search_text"].str.contains(query, na=False, regex=False)]
+    return results.drop(columns=["_search_text"], errors="ignore").head(max_rows)
+
+def compact_table_text(df, max_rows=20):
+    if df.empty:
+        return "No matching records found."
+    return df.head(max_rows).to_string(index=False)
+
+# ---------- AI SECTION ----------
+st.header("Ask ABT Marine AI")
+
+question = st.text_area(
+    "Ask a question",
+    placeholder="Example: What do we know about Odyssey? Build a timeline using sales orders, line items, and invoice ship dates."
 )
 
-if st.button("Search Boats"):
+if st.button("Ask AI"):
 
-    if boat_search:
+    if not question.strip():
+        st.warning("Enter a question first.")
 
-        boat_results = sales_orders[
-            sales_orders.astype(str)
-            .apply(lambda row: row.str.contains(
-                boat_search,
-                case=False,
-                na=False
-            ).any(), axis=1)
-        ]
+    else:
+        with st.spinner("Searching records and asking AI..."):
 
-        st.write(f"### Results for: {boat_search}")
+            sales_matches = search_df(sales_orders, question, max_rows=40)
+            line_matches = search_df(line_items, question, max_rows=60)
+            invoice_matches = search_df(invoices, question, max_rows=40)
 
-        if len(boat_results) > 0:
-            st.dataframe(boat_results, use_container_width=True)
-        else:
-            st.warning("No matching boats/customers found.")
+            context = f"""
+USER QUESTION:
+{question}
 
-# ---------------- PART SEARCH ----------------
-st.header("Part Lookup")
+MATCHING SALES ORDER RECORDS:
+{compact_table_text(sales_matches)}
 
-part_search = st.text_input(
-    "Search by part number, description, or keyword"
-)
+MATCHING LINE ITEM RECORDS:
+{compact_table_text(line_matches)}
 
-if st.button("Search Parts"):
+MATCHING INVOICE / SHIP DATE RECORDS:
+{compact_table_text(invoice_matches)}
 
-    if part_search:
+NOTES:
+- Invoice file columns include sales order number and invoice date.
+- Treat invoice date as the closest available shipment date.
+- Use sales order number to connect invoice records back to sales/order history when possible.
+"""
 
-        part_results = line_items[
-            line_items.astype(str)
-            .apply(lambda row: row.str.contains(
-                part_search,
-                case=False,
-                na=False
-            ).any(), axis=1)
-        ]
+            client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-        st.write(f"### Results for: {part_search}")
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": """
+You are an internal ABT-TRAC / Inov8v Marine AI assistant.
+Answer using only the provided spreadsheet records.
+Focus on boats, customers, parts, sales orders, invoices, ship dates, and vessel timeline.
+If records are incomplete, say what is missing.
+Be concise but useful for a marine parts salesperson.
+"""
+                    },
+                    {
+                        "role": "user",
+                        "content": context
+                    }
+                ],
+                temperature=0.2
+            )
 
-        if len(part_results) > 0:
-            st.dataframe(part_results, use_container_width=True)
-        else:
-            st.warning("No matching parts found.")
+            answer = response.choices[0].message.content
 
-# ---------------- FOOTER ----------------
+            st.subheader("AI Answer")
+            st.write(answer)
+
+            st.subheader("Matching Sales Orders")
+            st.dataframe(sales_matches, use_container_width=True)
+
+            st.subheader("Matching Line Items")
+            st.dataframe(line_matches, use_container_width=True)
+
+            st.subheader("Matching Invoice / Ship Date Records")
+            st.dataframe(invoice_matches, use_container_width=True)
+
 st.markdown("---")
-
-st.markdown("""
-### Current Focus
-
-- Boat / Customer search  
-- Parts lookup  
-- ABT-TRAC branded interface  
-- Streamlined sales support tools  
-""")
+st.caption("AI answers are based on uploaded sales order, line item, and invoice spreadsheet records.")
