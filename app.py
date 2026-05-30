@@ -200,7 +200,8 @@ def get_related_history(question, sales_matches):
         related_invoices.drop_duplicates(),
         related_sos
     )
-    def analyze_actuator_seal_service(question, sales_matches):
+def analyze_actuator_seal_service(question, sales_matches):
+
     today = pd.Timestamp(datetime.today().date())
 
     related_sales, related_lines, related_invoices, related_sos = get_related_history(
