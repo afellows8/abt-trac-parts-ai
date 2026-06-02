@@ -8,7 +8,7 @@ from openai import OpenAI
 from PIL import Image
 
 st.set_page_config(
-    page_title="ABT-TRAC Marine AI",
+    page_title="ABT-TRAC AI",
     page_icon="⚓",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -16,6 +16,10 @@ st.set_page_config(
 
 GITHUB_BASE = "https://raw.githubusercontent.com/afellows8/abt-trac-parts-ai/main/"
 BACKGROUND_IMAGE_URL = GITHUB_BASE + "Nordhavn%20N100%20Serenity.jpg"
+
+# -----------------------------------------------------------------------------
+# Visual design helpers
+# -----------------------------------------------------------------------------
 
 st.markdown(
     f"""
@@ -93,7 +97,7 @@ p, li, div {{
     margin-top: 14px;
 }}
 
-.capability-card, .metric-card, .answer-card, .search-card {{
+.capability-card, .metric-card, .answer-card, .search-card, .record-card {{
     background: var(--abt-card);
     border: 1px solid var(--abt-border);
     border-radius: 22px;
@@ -138,15 +142,18 @@ p, li, div {{
 }}
 
 .search-label {{
-    color: var(--abt-navy);
-    font-weight: 850;
-    font-size: 1.15rem;
-    margin-bottom: 4px;
+    color: #102B49;
+    font-weight: 900;
+    font-size: 1.45rem;
+    margin-bottom: 8px;
+    text-shadow: 0px 1px 2px rgba(255,255,255,0.7);
 }}
 
 .search-help {{
-    color: var(--abt-muted);
-    margin-bottom: 12px;
+    color: #0D4F7C;
+    font-size: 1.08rem;
+    font-weight: 700;
+    margin-bottom: 16px;
 }}
 
 .stTextArea textarea {{
@@ -156,6 +163,12 @@ p, li, div {{
     color: var(--abt-ink) !important;
     font-size: 1.02rem !important;
     line-height: 1.45 !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+}}
+
+.stTextArea textarea:focus {{
+    border-color: var(--abt-blue) !important;
+    box-shadow: 0 0 0 4px rgba(13,79,124,0.10) !important;
 }}
 
 .stButton button {{
@@ -167,6 +180,11 @@ p, li, div {{
     padding: 0.78rem 1.15rem !important;
     font-weight: 850 !important;
     box-shadow: 0 12px 28px rgba(13,79,124,0.25);
+}}
+
+.stButton button:hover {{
+    transform: translateY(-1px);
+    box-shadow: 0 16px 34px rgba(13,79,124,0.30);
 }}
 
 .stButton button * {{
@@ -213,6 +231,10 @@ p, li, div {{
 .answer-card {{
     padding: 24px 26px;
     border-top: 5px solid var(--abt-blue);
+}}
+
+.answer-card h1, .answer-card h2, .answer-card h3 {{
+    color: var(--abt-navy);
 }}
 
 .service-card {{
@@ -324,6 +346,10 @@ def section_header(kicker, title):
     )
 
 
+# -----------------------------------------------------------------------------
+# Data loading
+# -----------------------------------------------------------------------------
+
 @st.cache_data(show_spinner=False)
 def load_data():
     sales_orders = pd.read_excel("Sales Order Record.xlsx")
@@ -352,6 +378,10 @@ def load_data():
 
 sales_orders, line_items, invoices, seal_kits, upgrades = load_data()
 
+
+# -----------------------------------------------------------------------------
+# Business logic helpers
+# -----------------------------------------------------------------------------
 
 def find_cols(df, keywords):
     return [col for col in df.columns if any(k in str(col).lower() for k in keywords)]
@@ -671,6 +701,10 @@ def opportunities_to_text(opportunities):
     return "\n".join(lines)
 
 
+# -----------------------------------------------------------------------------
+# Header / demo-ready UI
+# -----------------------------------------------------------------------------
+
 hero_left, hero_right = st.columns([4.5, 1.4], vertical_alignment="center")
 
 with hero_left:
@@ -678,7 +712,7 @@ with hero_left:
         """
 <div class="hero-shell">
   <div class="hero-eyebrow">Internal Marine Sales Intelligence</div>
-  <h1 class="hero-title">ABT-TRAC Marine AI</h1>
+  <h1 class="hero-title">ABT-TRAC AI</h1>
   <div class="hero-subtitle">
     Search decades of vessel, parts, invoice, service, and upgrade history — then turn hidden records into actionable service and revenue opportunities.
   </div>
@@ -688,11 +722,11 @@ with hero_left:
     )
 
 with hero_right:
+    logo_col_a, logo_col_b = st.columns(1)
     try:
         st.image(Image.open("ABT TRAC Logo.jpg"), width=210)
     except Exception:
         st.markdown("### ABT TRAC")
-
     try:
         st.image(Image.open("Innov8v Marine Logo.png"), width=120)
     except Exception:
@@ -709,8 +743,8 @@ with cap4:
     markdown_card("Sales Summary", "Generates concise, salesperson-ready customer notes.", "AI")
 
 st.markdown('<div class="search-card">', unsafe_allow_html=True)
-st.markdown('<div class="search-label">Ask about a vessel, customer, sales order, part, service need, or upgrade opportunity.</div>', unsafe_allow_html=True)
-st.markdown('<div class="search-help">Demo prompt: <b>What do we know about Odyssey? Does it need service or any upgrades?</b></div>', unsafe_allow_html=True)
+st.markdown('<div class="search-label">Search Vessel History, Service Opportunities, and Upgrade Recommendations</div>', unsafe_allow_html=True)
+st.markdown('<div class="search-help">Example: <b>What do we know about Odyssey? Does it need service or any upgrades?</b></div>', unsafe_allow_html=True)
 
 with st.form("ask_ai_form"):
     question = st.text_area(
@@ -723,6 +757,10 @@ with st.form("ask_ai_form"):
 
 st.markdown('</div>', unsafe_allow_html=True)
 
+
+# -----------------------------------------------------------------------------
+# AI workflow and output
+# -----------------------------------------------------------------------------
 
 if ask_clicked:
     if not question.strip():
