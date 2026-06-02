@@ -722,7 +722,7 @@ with hero_left:
     )
 
 with hero_right:
-    logo_col_a, logo_col_b = st.columns(1)
+    logo_col_a, logo_col_b = st.columns([4, 1])
     try:
         st.image(Image.open("ABT TRAC Logo.jpg"), width=210)
     except Exception:
