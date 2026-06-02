@@ -150,10 +150,14 @@ p, li, div {{
 }}
 
 .search-help {{
-    color: #0D4F7C;
-    font-size: 1.08rem;
-    font-weight: 700;
+    color: #FFFFFF;
+    background: linear-gradient(135deg, #0D4F7C, #102B49);
+    font-size: 1.14rem;
+    font-weight: 900;
     margin-bottom: 16px;
+    padding: 12px 16px;
+    border-radius: 14px;
+    box-shadow: 0 10px 26px rgba(7,28,49,0.18);
 }}
 
 .stTextArea textarea {{
@@ -744,13 +748,13 @@ with cap4:
 
 st.markdown('<div class="search-card">', unsafe_allow_html=True)
 st.markdown('<div class="search-label">Search Vessel History, Service Opportunities, and Upgrade Recommendations</div>', unsafe_allow_html=True)
-st.markdown('<div class="search-help">Example: <b>What do we know about Odyssey? Does it need service or any upgrades?</b></div>', unsafe_allow_html=True)
+st.markdown('<div class="search-help">Ask ABT AI about a <b>Sales Order Number</b>, <b>Boat Name</b>, or <b>Hull Number</b>.</div>', unsafe_allow_html=True)
 
 with st.form("ask_ai_form"):
     question = st.text_area(
         "Question",
         label_visibility="collapsed",
-        placeholder="Example: What do we know about Odyssey? Does it need service or any upgrades?",
+        placeholder="Ask ABT AI about a Sales Order Number, Boat Name, or Hull Number...",
         height=105,
     )
     ask_clicked = st.form_submit_button("Run Marine AI Analysis")
