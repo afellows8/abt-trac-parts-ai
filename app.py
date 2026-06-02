@@ -285,13 +285,24 @@ def analyze_actuator_seal_service(question, sales_matches):
 
 
 def get_part_history_set(related_lines):
-    part_cols = find_cols(line_items, ["part", "item", "sku", "number"])
     part_set = set()
 
-    for col in part_cols:
-        if col in related_lines.columns:
-            values = related_lines[col].dropna().map(normalize_part).tolist()
-            part_set.update([v for v in values if v])
+    part_number_col = get_first_matching_col(
+        related_lines,
+        ["part number"]
+    )
+
+    if not part_number_col:
+        return part_set
+
+    values = (
+        related_lines[part_number_col]
+        .dropna()
+        .map(normalize_part)
+        .tolist()
+    )
+
+    part_set.update([v for v in values if v])
 
     return part_set
 
