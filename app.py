@@ -29,184 +29,321 @@ st.markdown(
     --abt-blue: #0D4F7C;
     --abt-sky: #2D8AB8;
     --abt-gold: #C7A349;
-    --abt-ink: #0A1A2F;
-    --abt-muted: #5D6B7A;
-    --abt-card: #FFFFFF;
-    --abt-border: rgba(16,43,73,0.14);
+    --abt-ink: #17263B;
+    --abt-muted: #627086;
+    --abt-card: rgba(255,255,255,0.97);
+    --abt-border: rgba(16,43,73,0.13);
 }}
 
 [data-testid="stAppViewContainer"] {{
-    background: #F5F7FA;
+    background:
+        linear-gradient(120deg, rgba(4,20,36,0.18), rgba(4,20,36,0.12)),
+        url("{BACKGROUND_IMAGE_URL}");
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
 }}
 
 [data-testid="stHeader"] {{
-    background: rgba(255,255,255,0.92);
-    backdrop-filter: blur(8px);
+    background: rgba(0,0,0,0);
 }}
 
 .block-container {{
-    padding-top: 1.0rem;
+    padding-top: 1.2rem;
     padding-bottom: 2.5rem;
     max-width: 1220px;
 }}
 
-h1, h2, h3, h4, p, li, div {{
+h1, h2, h3, h4 {{
+    color: var(--abt-ink);
+    letter-spacing: -0.02em;
+}}
+
+p, li, div {{
     color: var(--abt-ink);
 }}
 
 .hero-shell {{
-    position: relative;
-    overflow: hidden;
-    min-height: 275px;
-    border-radius: 30px;
-    padding: 32px 34px;
-    margin-bottom: 18px;
-    background:
-        linear-gradient(90deg, rgba(7,26,47,0.92) 0%, rgba(16,43,73,0.82) 42%, rgba(16,43,73,0.25) 100%),
-        url("{BACKGROUND_IMAGE_URL}");
-    background-size: cover;
-    background-position: center;
-    box-shadow: 0 24px 80px rgba(7,28,49,0.22);
-    border: 1px solid rgba(255,255,255,0.45);
+    background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(245,250,253,0.94));
+    border: 1px solid rgba(255,255,255,0.75);
+    border-radius: 28px;
+    padding: 28px 30px 24px 30px;
+    box-shadow: 0 24px 80px rgba(6,22,38,0.22);
+    margin-bottom: 20px;
 }}
 
 .hero-eyebrow {{
-    color: #D8EAF5;
-    font-weight: 900;
+    color: var(--abt-blue);
+    font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.14em;
     font-size: 0.78rem;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
 }}
 
 .hero-title {{
-    color: #FFFFFF;
-    font-size: 3.25rem;
+    color: var(--abt-navy);
+    font-size: 3.05rem;
     line-height: 0.98;
-    font-weight: 950;
+    font-weight: 900;
     margin: 0;
-    text-shadow: 0 3px 16px rgba(0,0,0,0.35);
 }}
 
 .hero-subtitle {{
-    color: rgba(255,255,255,0.94);
-    font-size: 1.13rem;
+    color: #233B58;
+    font-size: 1.08rem;
     line-height: 1.55;
     max-width: 720px;
     margin-top: 14px;
-    font-weight: 550;
 }}
 
-.hero-badge-row {{
-    margin-top: 20px;
-}}
-.hero-badge {{
-    display: inline-block;
-    background: rgba(255,255,255,0.15);
-    border: 1px solid rgba(255,255,255,0.22);
-    color: #FFFFFF;
-    border-radius: 999px;
-    padding: 7px 12px;
-    margin: 0 8px 8px 0;
-    font-size: 0.86rem;
-    font-weight: 800;
-}}
-
-.logo-card {{
-    background: rgba(255,255,255,0.92);
-    border: 1px solid rgba(16,43,73,0.14);
+.capability-card, .metric-card, .answer-card, .search-card, .record-card {{
+    background: var(--abt-card);
+    border: 1px solid var(--abt-border);
     border-radius: 22px;
-    padding: 16px;
-    box-shadow: 0 12px 36px rgba(7,28,49,0.12);
+    box-shadow: 0 16px 48px rgba(7,28,49,0.13);
 }}
 
-.search-card, .dashboard-card, .answer-card, .timeline-box, .service-card, .upgrade-card, .profile-tile, .metric-card, .panel-note, div[data-testid="stExpander"] {{
-    background: #FFFFFF !important;
-    border: 1px solid var(--abt-border) !important;
-    border-radius: 22px !important;
-    box-shadow: 0 14px 42px rgba(7,28,49,0.10) !important;
+.capability-card {{
+    padding: 18px 18px 16px 18px;
+    min-height: 142px;
+    background: rgba(255,255,255,0.98);
+}}
+
+.capability-icon {{
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--abt-blue), var(--abt-sky));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.08rem;
+    font-weight: 900;
+    margin-bottom: 12px;
+}}
+
+.capability-title {{
+    font-weight: 850;
+    color: var(--abt-navy);
+    font-size: 1.02rem;
+    margin-bottom: 6px;
+}}
+
+.capability-copy {{
+    color: #233B58;
+    font-size: 0.92rem;
+    line-height: 1.42;
 }}
 
 .search-card {{
     padding: 22px 24px 24px 24px;
-    margin: 12px 0 16px 0;
+    margin-top: 18px;
+    background: rgba(255,255,255,0.97);
 }}
 
 .search-label {{
-    color: var(--abt-navy);
-    font-weight: 950;
-    font-size: 1.35rem;
+    color: #081A2F;
+    font-weight: 900;
+    font-size: 1.45rem;
     margin-bottom: 8px;
+    text-shadow: 0px 1px 2px rgba(255,255,255,0.7);
 }}
 
 .search-help {{
-    color: #FFFFFF !important;
-    background: linear-gradient(135deg, var(--abt-blue), var(--abt-navy));
-    font-size: 1.02rem;
-    font-weight: 850;
+    color: #FFFFFF;
+    background: linear-gradient(135deg, #0D4F7C, #102B49);
+    font-size: 1.14rem;
+    font-weight: 900;
     margin-bottom: 16px;
-    padding: 11px 15px;
+    padding: 12px 16px;
     border-radius: 14px;
-}}
-.search-help, .search-help *, .search-help b {{
-    color: #FFFFFF !important;
+    box-shadow: 0 10px 26px rgba(7,28,49,0.18);
 }}
 
 .stTextArea textarea {{
-    background-color: #FFFFFF !important;
-    border: 1.5px solid rgba(13,79,124,0.26) !important;
-    border-radius: 16px !important;
+    background-color: rgba(255,255,255,0.98) !important;
+    border: 1.5px solid rgba(13,79,124,0.28) !important;
+    border-radius: 18px !important;
     color: var(--abt-ink) !important;
     font-size: 1.02rem !important;
     line-height: 1.45 !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+}}
+
+.stTextArea textarea:focus {{
+    border-color: var(--abt-blue) !important;
+    box-shadow: 0 0 0 4px rgba(13,79,124,0.10) !important;
 }}
 
 .stButton button {{
     width: 100%;
     background: linear-gradient(135deg, var(--abt-blue), var(--abt-navy)) !important;
-    color: #FFFFFF !important;
-    border-radius: 15px !important;
+    color: white !important;
+    border-radius: 16px !important;
     border: 0 !important;
     padding: 0.78rem 1.15rem !important;
-    font-weight: 900 !important;
-    box-shadow: 0 10px 26px rgba(13,79,124,0.22);
-}}
-.stButton button *, .stButton button p, .stButton button span {{
-    color: #FFFFFF !important;
+    font-weight: 850 !important;
+    box-shadow: 0 12px 28px rgba(13,79,124,0.25);
 }}
 
-.section-kicker {{
-    color: var(--abt-blue);
-    text-transform: uppercase;
-    letter-spacing: 0.13em;
-    font-size: 0.78rem;
-    font-weight: 950;
-    margin-top: 22px;
+.stButton button:hover {{
+    transform: translateY(-1px);
+    box-shadow: 0 16px 34px rgba(13,79,124,0.30);
 }}
-.section-title {{
-    color: var(--abt-navy);
-    font-size: 1.50rem;
-    font-weight: 950;
-    margin-bottom: 10px;
+
+.stButton button * {{
+    color: white !important;
+}}
+
+.nav-caption {{
+    background: rgba(255,255,255,0.98);
+    border: 1px solid rgba(16,43,73,0.12);
+    border-radius: 0 0 18px 18px;
+    padding: 8px 12px 12px 12px;
+    margin-top: -8px;
+    margin-bottom: 8px;
+    min-height: 54px;
+    color: #233B58;
+    font-size: 0.90rem;
+    line-height: 1.32;
+    box-shadow: 0 14px 34px rgba(7,28,49,0.10);
+}}
+
+.panel-note {{
+    background: rgba(255,255,255,0.98);
+    border: 1px solid rgba(16,43,73,0.12);
+    border-radius: 18px;
+    padding: 16px 18px;
+    margin-top: 12px;
+    color: #102B49;
+    font-weight: 800;
 }}
 
 .metric-card {{
     padding: 17px 18px;
-    border-left: 5px solid var(--abt-gold) !important;
+    border-left: 5px solid var(--abt-gold);
 }}
+
 .metric-value {{
-    font-size: 1.9rem;
+    font-size: 2rem;
     line-height: 1;
-    font-weight: 950;
+    font-weight: 900;
     color: var(--abt-navy);
 }}
+
 .metric-label {{
     margin-top: 6px;
-    color: var(--abt-muted);
-    font-weight: 850;
-    font-size: 0.82rem;
+    color: #102B49;
+    font-weight: 800;
+    font-size: 0.88rem;
     text-transform: uppercase;
     letter-spacing: 0.06em;
+}}
+
+.section-kicker {{
+    color: #0D4F7C;
+    background: rgba(255,255,255,0.97);
+    border: 1px solid rgba(16,43,73,0.12);
+    border-bottom: 0;
+    border-radius: 18px 18px 0 0;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.78rem;
+    font-weight: 900;
+    margin-top: 26px;
+    padding: 14px 18px 4px 18px;
+}}
+
+.section-title {{
+    color: #081A2F;
+    background: rgba(255,255,255,0.97);
+    border: 1px solid rgba(16,43,73,0.12);
+    border-top: 0;
+    border-radius: 0 0 18px 18px;
+    font-size: 1.55rem;
+    font-weight: 900;
+    margin-bottom: 10px;
+    padding: 0 18px 14px 18px;
+    box-shadow: 0 12px 32px rgba(7,28,49,0.10);
+}}
+
+.answer-card {{
+    padding: 24px 26px;
+    border-top: 5px solid var(--abt-blue);
+}}
+
+.answer-card h1, .answer-card h2, .answer-card h3 {{
+    color: var(--abt-navy);
+}}
+
+.service-card {{
+    background: linear-gradient(135deg, rgba(199,163,73,0.18), rgba(255,255,255,0.94));
+    border: 1px solid rgba(199,163,73,0.35);
+    border-radius: 20px;
+    padding: 18px 20px;
+    box-shadow: 0 12px 36px rgba(7,28,49,0.10);
+}}
+
+.upgrade-card {{
+    background: rgba(255,255,255,0.95);
+    border: 1px solid rgba(13,79,124,0.18);
+    border-radius: 20px;
+    padding: 18px 20px;
+    box-shadow: 0 12px 36px rgba(7,28,49,0.10);
+    margin-bottom: 12px;
+}}
+
+.upgrade-title {{
+    color: var(--abt-navy);
+    font-size: 1.12rem;
+    font-weight: 900;
+    margin-bottom: 8px;
+}}
+
+.pill {{
+    display: inline-block;
+    background: rgba(13,79,124,0.10);
+    color: var(--abt-blue);
+    border: 1px solid rgba(13,79,124,0.14);
+    border-radius: 999px;
+    padding: 6px 10px;
+    margin: 4px 5px 2px 0;
+    font-size: 0.82rem;
+    font-weight: 750;
+}}
+
+.lit-link a {{
+    color: var(--abt-blue) !important;
+    font-weight: 800;
+    text-decoration: none;
+}}
+
+.small-muted {{
+    color: #233B58;
+    font-size: 0.88rem;
+}}
+
+div[data-testid="stExpander"] {{
+    background: rgba(255,255,255,0.92);
+    border: 1px solid rgba(16,43,73,0.12);
+    border-radius: 18px;
+}}
+
+[data-testid="stDataFrame"] {{
+    border-radius: 16px;
+    overflow: hidden;
+}}
+
+.footer-note {{
+    color: #102B49;
+    background: rgba(255,255,255,0.86);
+    border-radius: 14px;
+    font-size: 0.86rem;
+    text-align: center;
+    padding: 12px;
+    margin-top: 16px;
 }}
 
 .profile-grid {{
@@ -216,145 +353,214 @@ h1, h2, h3, h4, p, li, div {{
     margin-bottom: 12px;
 }}
 .profile-tile {{
-    padding: 15px 16px;
+    background: rgba(255,255,255,0.98);
+    border: 1px solid rgba(16,43,73,0.12);
+    border-radius: 18px;
+    padding: 14px 16px;
+    box-shadow: 0 12px 32px rgba(7,28,49,0.10);
 }}
 .profile-label {{
-    color: var(--abt-muted);
-    font-size: 0.76rem;
-    font-weight: 900;
+    color: #233B58;
+    font-size: 0.78rem;
+    font-weight: 850;
     text-transform: uppercase;
     letter-spacing: 0.07em;
 }}
 .profile-value {{
     color: var(--abt-navy);
-    font-size: 1.12rem;
-    font-weight: 950;
+    font-size: 1.2rem;
+    font-weight: 900;
     margin-top: 4px;
-    line-height: 1.2;
 }}
-
-.ai-answer-html {{
-    background: #FFFFFF;
-    border: 1px solid var(--abt-border);
-    border-top: 5px solid var(--abt-blue);
-    border-radius: 22px;
-    box-shadow: 0 14px 42px rgba(7,28,49,0.10);
-    padding: 24px 28px;
-}}
-.ai-answer-html, .ai-answer-html * {{
-    color: var(--abt-ink) !important;
-}}
-.ai-answer-html h1, .ai-answer-html h2, .ai-answer-html h3, .ai-answer-html strong {{
-    color: var(--abt-navy) !important;
-}}
-
 .timeline-box {{
+    background: rgba(255,255,255,0.98);
+    border: 1px solid rgba(16,43,73,0.12);
+    border-radius: 20px;
     padding: 16px 18px;
+    box-shadow: 0 12px 32px rgba(7,28,49,0.10);
     margin-bottom: 10px;
 }}
 .timeline-item {{
     border-left: 4px solid var(--abt-blue);
-    padding: 7px 0 12px 14px;
+    padding: 6px 0 10px 14px;
     margin-left: 5px;
 }}
 .timeline-date {{
-    color: var(--abt-blue);
-    font-weight: 950;
+    color: #102B49;
+    font-weight: 900;
     font-size: 0.9rem;
 }}
 .timeline-title {{
     color: var(--abt-navy);
-    font-weight: 950;
+    font-weight: 900;
 }}
 .timeline-copy {{
-    color: var(--abt-muted);
+    color: #233B58;
     font-size: 0.9rem;
 }}
-
-.service-card, .upgrade-card, .dashboard-card, .panel-note {{
+.dashboard-card {{
+    background: rgba(255,255,255,0.98);
+    border: 1px solid rgba(16,43,73,0.12);
+    border-radius: 22px;
     padding: 18px 20px;
-    margin-bottom: 12px;
-}}
-.upgrade-title {{
-    color: var(--abt-navy);
-    font-size: 1.12rem;
-    font-weight: 950;
-    margin-bottom: 8px;
-}}
-.small-muted {{
-    color: var(--abt-muted);
-    font-size: 0.88rem;
+    box-shadow: 0 16px 48px rgba(7,28,49,0.13);
+    margin: 18px 0;
 }}
 
-.pill {{
-    display: inline-block;
-    background: rgba(13,79,124,0.09);
-    color: var(--abt-blue);
-    border: 1px solid rgba(13,79,124,0.15);
-    border-radius: 999px;
-    padding: 6px 10px;
-    margin: 4px 5px 2px 0;
-    font-size: 0.82rem;
-    font-weight: 850;
+/* Readability hardening for demo screens */
+.stMarkdown, .stMarkdown p, .stMarkdown li, .stCaptionContainer, label, .stSelectbox label, .stTextInput label {{
+    color: #081A2F !important;
+}}
+div[data-testid="stMarkdownContainer"] p {{
+    color: #102B49;
 }}
 
-.footer-note {{
-    color: var(--abt-muted);
-    background: #FFFFFF;
-    border: 1px solid var(--abt-border);
-    border-radius: 14px;
-    font-size: 0.86rem;
-    text-align: center;
-    padding: 12px;
-    margin-top: 16px;
+
+/* Final readability fix: keep generated output on clean white surfaces */
+.generated-output-card, .ai-answer-html, .opportunity-dashboard-shell {{
+    background: rgba(255,255,255,0.985);
+    border: 1px solid rgba(16,43,73,0.14);
+    border-radius: 22px;
+    box-shadow: 0 16px 48px rgba(7,28,49,0.14);
+    color: #071A2F !important;
+}}
+.ai-answer-html {{
+    padding: 24px 28px;
+    border-top: 5px solid #0D4F7C;
+}}
+.ai-answer-html, .ai-answer-html * {{
+    color: #071A2F !important;
+}}
+.ai-answer-html h1, .ai-answer-html h2, .ai-answer-html h3, .ai-answer-html strong {{
+    color: #061B31 !important;
+}}
+.timeline-box, .service-card, .upgrade-card, .profile-tile, .dashboard-card, .answer-card {{
+    background: rgba(255,255,255,0.985) !important;
+    color: #071A2F !important;
+}}
+.timeline-box *, .service-card *, .upgrade-card *, .profile-tile *, .dashboard-card *, .answer-card * {{
+    color: #071A2F !important;
+}}
+.stMarkdown, .stMarkdown *, div[data-testid="stMarkdownContainer"], div[data-testid="stMarkdownContainer"] *,
+.stCaptionContainer, .stCaptionContainer *, label, .stSelectbox label, .stTextArea label, .stTextInput label {{
+    color: #071A2F !important;
+}}
+div[data-testid="stExpander"] {{
+    background: rgba(255,255,255,0.985) !important;
+}}
+div[data-testid="stExpander"] * {{
+    color: #071A2F !important;
+}}
+.stSelectbox > div > div {{
+    background-color: rgba(255,255,255,0.98) !important;
+    color: #071A2F !important;
+}}
+[data-testid="stDataFrame"] {{
+    background: rgba(255,255,255,0.99) !important;
 }}
 
-/* Selectbox labels are dark now because the page is clean white */
+
+/* Demo readability overrides - added to remove invisible/dark text issues */
+div[data-testid="stButton"] button,
+div[data-testid="stButton"] button *,
+.stButton button,
+.stButton button *,
+.stButton button p,
+.stButton button span {{
+    color: #FFFFFF !important;
+    opacity: 1 !important;
+    text-shadow: none !important;
+}}
+
+.search-help,
+.search-help *,
+.search-help b {{
+    color: #FFFFFF !important;
+}}
+
+/* Make Upgrade Type label readable against the yacht background */
+div[data-testid="stSelectbox"] label,
+div[data-testid="stSelectbox"] label *,
+.stSelectbox label,
+.stSelectbox label *,
+label[for*="Upgrade"],
+label[for*="upgrade"] {{
+    color: #FFFFFF !important;
+    font-weight: 900 !important;
+    font-size: 1rem !important;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.85) !important;
+}}
+
+/* Keep page sections from creating empty white bars */
+.dashboard-card:empty,
+.search-card:empty,
+.generated-output-card:empty,
+.record-card:empty {{
+    display: none !important;
+    height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}}
+
+
+/* Clean final UI: readable labels, no empty white bars, Streamlit tab styling */
+.search-help, .search-help *, .search-help b {{
+    color: #FFFFFF !important;
+}}
+
 div[data-testid="stSelectbox"] label,
 div[data-testid="stSelectbox"] label *,
 .stSelectbox label,
 .stSelectbox label * {{
-    color: var(--abt-navy) !important;
-    font-weight: 950 !important;
+    color: #FFFFFF !important;
+    font-weight: 900 !important;
     font-size: 1rem !important;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.85) !important;
 }}
-.stSelectbox > div > div {{
-    background-color: #FFFFFF !important;
-    color: var(--abt-ink) !important;
+
+div[data-testid="stButton"] button,
+div[data-testid="stButton"] button *,
+.stButton button,
+.stButton button *,
+.stButton button p,
+.stButton button span {{
+    color: #FFFFFF !important;
+    opacity: 1 !important;
+}}
+
+.nav-caption {{
+    display: none !important;
+}}
+.dashboard-card:empty,
+.search-card:empty,
+.generated-output-card:empty,
+.record-card:empty {{
+    display: none !important;
+    height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
 }}
 
 button[data-baseweb="tab"] {{
-    background: #FFFFFF !important;
-    border: 1px solid rgba(16,43,73,0.18) !important;
+    background: linear-gradient(135deg, #0D4F7C, #102B49) !important;
     border-radius: 14px !important;
     margin-right: 8px !important;
-    padding: 10px 14px !important;
-    color: var(--abt-navy) !important;
-    font-weight: 950 !important;
-    box-shadow: 0 8px 22px rgba(7,28,49,0.08);
+    padding: 10px 16px !important;
+    color: white !important;
+    font-weight: 900 !important;
 }}
 button[data-baseweb="tab"] * {{
-    color: var(--abt-navy) !important;
-    font-weight: 950 !important;
+    color: white !important;
+    font-weight: 900 !important;
 }}
 button[data-baseweb="tab"][aria-selected="true"] {{
-    background: linear-gradient(135deg, var(--abt-blue), var(--abt-navy)) !important;
-    color: #FFFFFF !important;
-    border-color: transparent !important;
-}}
-button[data-baseweb="tab"][aria-selected="true"] * {{
-    color: #FFFFFF !important;
+    outline: 3px solid rgba(199,163,73,0.75) !important;
 }}
 
-[data-testid="stDataFrame"] {{
-    border-radius: 16px;
-    overflow: hidden;
-    background: #FFFFFF !important;
-}}
-
-.nav-caption, .capability-card:empty, .dashboard-card:empty, .search-card:empty, .record-card:empty {{
-    display: none !important;
-}}
 </style>
 """,
     unsafe_allow_html=True,
@@ -1116,38 +1322,33 @@ if "active_panel" not in st.session_state:
 # Header / demo-ready UI
 # -----------------------------------------------------------------------------
 
-st.markdown(
-    """
+hero_left, hero_right = st.columns([4.5, 1.4], vertical_alignment="center")
+
+with hero_left:
+    st.markdown(
+        """
 <div class="hero-shell">
   <div class="hero-eyebrow">Internal Marine Sales Intelligence</div>
   <h1 class="hero-title">ABT-TRAC AI</h1>
   <div class="hero-subtitle">
-    AI-powered marine service, upgrade, AIS, and sales intelligence for ABT-TRAC / Inov8v Marine.
-  </div>
-  <div class="hero-badge-row">
-    <span class="hero-badge">Vessel History</span>
-    <span class="hero-badge">Service Signals</span>
-    <span class="hero-badge">Upgrade Paths</span>
-    <span class="hero-badge">AI Sales Agent</span>
+    Search decades of vessel, parts, invoice, service, and upgrade history — then turn hidden records into actionable service and revenue opportunities.
   </div>
 </div>
 """,
-    unsafe_allow_html=True,
-)
+        unsafe_allow_html=True,
+    )
 
-logo_a, logo_b, logo_c = st.columns([1.4, 1, 5])
-with logo_a:
+with hero_right:
+    logo_col_a, logo_col_b = st.columns([4, 1])
     try:
-        st.image(Image.open("ABT TRAC Logo.jpg"), width=220)
+        st.image(Image.open("ABT TRAC Logo.jpg"), width=210)
     except Exception:
         st.markdown("### ABT TRAC")
-with logo_b:
     try:
         st.image(Image.open("Innov8v Marine Logo.png"), width=120)
     except Exception:
         st.caption("Inov8v Marine")
 
-st.markdown('<div class="search-card">', unsafe_allow_html=True)
 st.markdown('<div class="search-label">Search Vessel History, Service Opportunities, and Upgrade Recommendations</div>', unsafe_allow_html=True)
 st.markdown('<div class="search-help">Ask ABT AI about a <b>Sales Order Number</b>, <b>Boat Name</b>, or <b>Hull Number</b>.</div>', unsafe_allow_html=True)
 
@@ -1160,11 +1361,44 @@ with st.form("ask_ai_form"):
     )
     ask_clicked = st.form_submit_button("Run Marine AI Analysis")
 
-st.markdown('</div>', unsafe_allow_html=True)
+
+section_header("Customer Opportunity Dashboard", "Find Eligible Original Sales Orders by Upgrade Type")
+upgrade_names = [str(x).strip() for x in upgrades.iloc[:, 0].dropna().tolist() if str(x).strip()]
+upgrade_filter = st.selectbox("Upgrade type", ["All Upgrade Types"] + upgrade_names, index=0)
+scan_clicked = st.button("Scan Customer Base for Eligible Upgrade Opportunities", key="scan_customer_base")
+
+if scan_clicked or "opportunity_dashboard" in st.session_state:
+    if scan_clicked:
+        with st.spinner("Scanning original sales orders and line item history..."):
+            st.session_state.opportunity_dashboard = build_customer_opportunity_dashboard(upgrade_filter)
+            st.session_state.opportunity_dashboard_filter = upgrade_filter
+
+    dashboard_df = st.session_state.get("opportunity_dashboard", pd.DataFrame())
+    dashboard_filter = st.session_state.get("opportunity_dashboard_filter", upgrade_filter)
+    st.caption(f"Showing eligible original sales orders for: {dashboard_filter}")
+
+    if dashboard_df.empty:
+        st.info("No eligible opportunities found for this upgrade type.")
+    else:
+        d1, d2, d3 = st.columns(3)
+        with d1:
+            metric_card(len(dashboard_df), "Eligible Records")
+        with d2:
+            metric_card(dashboard_df["Original Sales Order"].nunique(), "Original SOs")
+        with d3:
+            metric_card(dashboard_df["Upgrade Type"].nunique(), "Upgrade Types")
+        st.dataframe(dashboard_df, use_container_width=True, hide_index=True)
+        st.download_button(
+            "Download Opportunity List as CSV",
+            dashboard_df.to_csv(index=False),
+            file_name="abt_trac_upgrade_opportunities.csv",
+            mime="text/csv",
+        )
 
 
-# Fleet-wide dashboard is intentionally placed below the individual vessel analysis.
-# It becomes more useful after the demo audience sees one boat analysis first.
+
+
+
 
 # -----------------------------------------------------------------------------
 # AI workflow and output
@@ -1319,315 +1553,6 @@ def render_upgrade_cards(upgrade_opportunities):
         st.info("No applicable upgrade opportunities found.")
 
 
-
-def get_agent_priority(data):
-    service_message = str(data.get("service_message", "")).lower()
-    upgrade_count = len(data.get("upgrade_opportunities", []))
-    service_signal = "recommended" in service_message or "follow-up" in service_message
-
-    if service_signal and upgrade_count >= 1:
-        return "High", "Service follow-up and upgrade opportunity both identified."
-    if upgrade_count >= 2:
-        return "High", "Multiple upgrade opportunities identified."
-    if service_signal or upgrade_count == 1:
-        return "Medium", "One clear follow-up opportunity identified."
-    return "Low", "No immediate service or upgrade opportunity identified from the current records."
-
-
-def build_agent_evidence(data):
-    evidence = []
-    service_message = str(data.get("service_message", ""))
-    if service_message:
-        evidence.append(f"Service signal: {service_message}")
-
-    upgrades_found = data.get("upgrade_opportunities", [])
-    if upgrades_found:
-        for opp in upgrades_found:
-            upgrade_name = opp.get("Upgrade", "Upgrade opportunity")
-            matching_parts = opp.get("Matching Existing Parts", "")
-            if matching_parts:
-                evidence.append(f"{upgrade_name}: qualifying part history found: {matching_parts}")
-            else:
-                evidence.append(f"{upgrade_name}: applicable based on current upgrade rules.")
-            lit = opp.get("Literature", [])
-            if lit:
-                evidence.append(f"{upgrade_name}: supporting literature available: {', '.join([name for name, url in lit])}")
-    else:
-        evidence.append("No applicable upgrade opportunities were found for this vessel search.")
-
-    profile = data.get("boat_profile", {})
-    evidence.append(f"Related sales orders reviewed: {profile.get('Related Sales Orders', len(data.get('sales_context', [])))}")
-    evidence.append(f"Line items reviewed: {profile.get('Line Items', len(data.get('line_context', [])))}")
-    return evidence
-
-
-def build_next_best_actions(data):
-    actions = []
-    upgrades_found = data.get("upgrade_opportunities", [])
-    service_message = str(data.get("service_message", ""))
-
-    if "recommended" in service_message.lower() or "follow-up" in service_message.lower():
-        actions.append("Ask the customer or dealer whether actuator seal kits have been serviced recently.")
-        actions.append("Offer a preventive service review before the next operating season.")
-
-    for opp in upgrades_found[:4]:
-        upgrade_name = opp.get("Upgrade", "upgrade opportunity")
-        actions.append(f"Send supporting literature for {upgrade_name}.")
-        actions.append(f"Ask whether the vessel owner would like to review the benefits of {upgrade_name}.")
-
-    if not actions:
-        actions.append("Use this search as an account-history summary and ask whether there are current service issues or planned refit work.")
-
-    actions.append("Document the follow-up in CRM or Cetec notes after customer contact.")
-    return actions[:8]
-
-
-def render_agent_bullets(items):
-    if not items:
-        st.info("No agent items generated.")
-        return
-    st.markdown("<div class='ai-answer-html'><ul>" + "".join([f"<li>{safe_text(item)}</li>" for item in items]) + "</ul></div>", unsafe_allow_html=True)
-
-
-def build_agent_context(data, agent_task):
-    return f"""
-CURRENT BOAT PROFILE:
-{data.get('boat_profile', {})}
-
-OPPORTUNITY PRIORITY:
-{get_agent_priority(data)}
-
-NEXT BEST ACTIONS:
-{build_next_best_actions(data)}
-
-EVIDENCE:
-{build_agent_evidence(data)}
-
-SERVICE MESSAGE:
-{data.get('service_message', '')}
-
-UPGRADE OPPORTUNITIES:
-{opportunities_to_text(data.get('upgrade_opportunities', []))}
-
-AI SUMMARY:
-{data.get('ai_answer', '')}
-
-AGENT TASK:
-{agent_task}
-"""
-
-
-def render_ai_agent_tab(data):
-    section_header("AI Agent", "Sales Follow-Up Assistant")
-
-    priority, reason = get_agent_priority(data)
-    a1, a2, a3 = st.columns(3)
-    with a1:
-        metric_card(priority, "Opportunity Priority")
-    with a2:
-        metric_card(len(data.get("upgrade_opportunities", [])), "Upgrade Paths")
-    with a3:
-        service_flag = "Yes" if "recommended" in str(data.get("service_message", "")).lower() or "follow-up" in str(data.get("service_message", "")).lower() else "No"
-        metric_card(service_flag, "Service Follow-Up")
-
-    st.markdown(
-        f"""
-<div class="service-card">
-  <div class="upgrade-title">Agent Priority Rationale</div>
-  <div>{safe_text(reason)}</div>
-</div>
-""",
-        unsafe_allow_html=True,
-    )
-
-    st.markdown("### Next Best Actions")
-    render_agent_bullets(build_next_best_actions(data))
-
-    st.markdown("### Why the Agent Recommends This")
-    render_agent_bullets(build_agent_evidence(data))
-
-    st.markdown("### Generate AI Sales Material")
-    agent_task = st.selectbox(
-        "Choose what the AI agent should create",
-        [
-            "Draft a concise customer follow-up email",
-            "Create a sales call script",
-            "Summarize the opportunity for a sales manager",
-            "Write an upgrade explanation in plain English",
-            "Create a prioritized follow-up plan",
-        ],
-        key="agent_task_selector",
-    )
-
-    custom_instruction = st.text_area(
-        "Optional custom instruction",
-        placeholder="Example: Make it shorter and focused on the Hydraulic to DC upgrade.",
-        height=80,
-        key="agent_custom_instruction",
-    )
-
-    if st.button("Run AI Sales Agent", key="run_ai_sales_agent"):
-        with st.spinner("AI Agent is generating sales guidance..."):
-            full_task = agent_task
-            if custom_instruction.strip():
-                full_task += "\nAdditional instruction: " + custom_instruction.strip()
-
-            client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-            agent_response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": """
-You are an ABT-TRAC sales enablement AI agent.
-Use only the provided records and recommendations.
-Do not invent prices, dates, or installed equipment.
-Be concise, practical, and sales-focused.
-When drafting customer-facing material, keep it professional and avoid sounding too aggressive.
-""",
-                    },
-                    {"role": "user", "content": build_agent_context(data, full_task)},
-                ],
-                temperature=0.25,
-            )
-            st.markdown(
-                f"""
-<div class="ai-answer-html">
-{simple_markdown_to_html(agent_response.choices[0].message.content)}
-</div>
-""",
-                unsafe_allow_html=True,
-            )
-
-
-def infer_ais_region_from_records(data):
-    """Prototype AIS-style inference using existing records only; no live AIS API."""
-    text_parts = []
-    for key in ["sales_context", "line_context", "invoice_context"]:
-        df = data.get(key)
-        if df is not None and not getattr(df, "empty", True):
-            text_parts.append(" ".join(df.fillna("").astype(str).head(30).values.flatten().tolist()).lower())
-    text = " ".join(text_parts)
-
-    region_rules = [
-        ("Pacific Northwest", ["seattle", "everett", "washington", "wa", "anacortes", "bellingham", "tacoma", "port angeles"]),
-        ("Florida / Southeast", ["florida", "fl", "fort lauderdale", "miami", "stuart", "west palm", "palm beach"]),
-        ("California / West Coast", ["california", "ca", "san diego", "los angeles", "newport", "san francisco"]),
-        ("Northeast", ["new york", "rhode island", "massachusetts", "maine", "connecticut", "boston"]),
-        ("International", ["taiwan", "hong kong", "australia", "canada", "korea", "netherlands", "china", "japan"]),
-    ]
-    for region, keywords in region_rules:
-        if any(k in text for k in keywords):
-            return region
-    return "Unknown / not enough location data"
-
-
-def get_latest_activity_date(data):
-    invoice_context = data.get("invoice_context", pd.DataFrame())
-    sales_context = data.get("sales_context", pd.DataFrame())
-    candidates = []
-
-    for df in [invoice_context, sales_context]:
-        if df is None or df.empty:
-            continue
-        date_cols = find_cols(df, ["ship date", "shipdate", "invoice date", "date", "created", "order date"])
-        for col in date_cols:
-            dates = pd.to_datetime(df[col], errors="coerce").dropna()
-            if not dates.empty:
-                candidates.append(dates.max())
-
-    if not candidates:
-        return None
-    return max(candidates)
-
-
-def build_ais_intelligence(data):
-    """V1 AIS Intelligence: inferred from business records, ready for future live AIS API."""
-    latest_date = get_latest_activity_date(data)
-    today = pd.Timestamp(datetime.today().date())
-
-    if latest_date is None:
-        activity_status = "Unknown"
-        days_since = "Not available"
-        sales_timing = "Use account history first; AIS API integration would improve timing."
-    else:
-        days = int((today - pd.Timestamp(latest_date).normalize()).days)
-        days_since = f"{days} days since latest record"
-        if days <= 365:
-            activity_status = "Recently Active"
-            sales_timing = "Good candidate for near-term outreach. Recent account activity suggests the vessel/customer is still engaged."
-        elif days <= 365 * 3:
-            activity_status = "Moderately Active"
-            sales_timing = "Good candidate for planned service or refit outreach."
-        else:
-            activity_status = "Dormant / Older Records"
-            sales_timing = "Use a softer reactivation message and verify current vessel ownership before heavy sales follow-up."
-
-    region = infer_ais_region_from_records(data)
-    upgrades = data.get("upgrade_opportunities", [])
-    service_message = str(data.get("service_message", ""))
-    service_flag = "recommended" in service_message.lower() or "follow-up" in service_message.lower()
-
-    if upgrades and service_flag:
-        sales_angle = "Bundle upgrade review with preventive service discussion."
-    elif upgrades:
-        sales_angle = "Lead with upgrade education and supporting literature."
-    elif service_flag:
-        sales_angle = "Lead with maintenance/service reliability."
-    else:
-        sales_angle = "Use as relationship intelligence; ask about current operating plans."
-
-    return {
-        "Last Known Status": activity_status,
-        "Estimated Operating Region": region,
-        "Latest Record": str(latest_date.date()) if latest_date is not None else "Not found",
-        "Activity Signal": days_since,
-        "Likely Operating Pattern": "Prototype inference from sales/invoice history; live AIS would validate movement and location.",
-        "Recommended Sales Timing": sales_timing,
-        "Recommended Sales Angle": sales_angle,
-        "Future AIS Upgrade": "Connect vessel name/MMSI to a live AIS provider to confirm last position, movement frequency, and operating region.",
-    }
-
-
-def render_ais_intelligence_tab(data):
-    section_header("AIS Intelligence", "Prototype Vessel Activity Layer")
-    ais = build_ais_intelligence(data)
-
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        metric_card(ais["Last Known Status"], "Activity Status")
-    with c2:
-        metric_card(ais["Estimated Operating Region"], "Estimated Region")
-    with c3:
-        metric_card(ais["Latest Record"], "Latest Record")
-
-    st.markdown(
-        f"""
-<div class="service-card">
-  <div class="upgrade-title">AIS Intelligence V1</div>
-  <div><strong>Activity Signal:</strong> {safe_text(ais['Activity Signal'])}</div>
-  <div><strong>Likely Operating Pattern:</strong> {safe_text(ais['Likely Operating Pattern'])}</div>
-  <div><strong>Recommended Sales Timing:</strong> {safe_text(ais['Recommended Sales Timing'])}</div>
-  <div><strong>Recommended Sales Angle:</strong> {safe_text(ais['Recommended Sales Angle'])}</div>
-</div>
-""",
-        unsafe_allow_html=True,
-    )
-
-    st.markdown("### Future Live AIS Integration")
-    st.markdown(
-        f"""
-<div class="ai-answer-html">
-<ul>
-  <li>{safe_text(ais['Future AIS Upgrade'])}</li>
-  <li>Use vessel activity to prioritize outreach before service season or refit windows.</li>
-  <li>Combine ERP history + upgrade rules + AIS movement to rank real-world sales opportunities.</li>
-</ul>
-</div>
-""",
-        unsafe_allow_html=True,
-    )
-
 def render_latest_analysis():
     data = st.session_state.latest_analysis
 
@@ -1653,12 +1578,11 @@ def render_latest_analysis():
     with m4:
         metric_card(len(data["upgrade_opportunities"]), "Upgrade Opportunities")
 
-    summary_tab, vessel_tab, service_tab, upgrade_tab, ais_tab, records_tab, agent_tab = st.tabs([
+    summary_tab, vessel_tab, service_tab, upgrade_tab, records_tab, agent_tab = st.tabs([
         "AI Summary",
         "⚓ Vessel History",
         "🔧 Service Signals",
         "↗ Upgrade Paths",
-        "AIS Intelligence",
         "Supporting Records",
         "AI Agent",
     ])
@@ -1696,9 +1620,6 @@ def render_latest_analysis():
         section_header("Upgrade Paths", "Applicable Upgrades")
         render_upgrade_cards(data["upgrade_opportunities"])
 
-    with ais_tab:
-        render_ais_intelligence_tab(data)
-
     with records_tab:
         section_header("Supporting Records", "Evidence Used by the AI")
         st.markdown(
@@ -1714,51 +1635,56 @@ def render_latest_analysis():
             st.dataframe(data["invoice_context"], use_container_width=True, hide_index=True)
 
     with agent_tab:
-        render_ai_agent_tab(data)
+        section_header("AI Agent", "Sales Follow-Up Assistant")
+        agent_prompt = st.text_area(
+            "Ask the agent to draft a sales follow-up, call plan, or upgrade explanation.",
+            placeholder="Example: Draft a short follow-up email explaining the recommended upgrade opportunities for this vessel.",
+            height=100,
+        )
+        if st.button("Run AI Agent", key="run_ai_agent"):
+            if not agent_prompt.strip():
+                st.warning("Enter an agent instruction first.")
+            else:
+                with st.spinner("Generating sales follow-up guidance..."):
+                    agent_context = f"""
+CURRENT BOAT PROFILE:
+{data.get('boat_profile', {})}
+
+SERVICE MESSAGE:
+{data.get('service_message', '')}
+
+UPGRADE OPPORTUNITIES:
+{opportunities_to_text(data.get('upgrade_opportunities', []))}
+
+AI SUMMARY:
+{data.get('ai_answer', '')}
+
+USER REQUEST:
+{agent_prompt}
+"""
+                    client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+                    agent_response = client.chat.completions.create(
+                        model="gpt-4o-mini",
+                        messages=[
+                            {
+                                "role": "system",
+                                "content": "You are an ABT-TRAC sales enablement AI agent. Use only the provided context. Be concise, practical, and sales-focused.",
+                            },
+                            {"role": "user", "content": agent_context},
+                        ],
+                        temperature=0.25,
+                    )
+                    st.markdown(
+                        f"""
+<div class="ai-answer-html">
+{simple_markdown_to_html(agent_response.choices[0].message.content)}
+</div>
+""",
+                        unsafe_allow_html=True,
+                    )
 
 
 render_latest_analysis()
-
-section_header("Customer Opportunity Dashboard", "Find Eligible Original Sales Orders by Upgrade Type")
-st.markdown('<div class="dashboard-card">', unsafe_allow_html=True)
-upgrade_names = [str(x).strip() for x in upgrades.iloc[:, 0].dropna().tolist() if str(x).strip()]
-upgrade_filter = st.selectbox("Upgrade type", ["All Upgrade Types"] + upgrade_names, index=0)
-scan_clicked = st.button("Scan Customer Base for Eligible Upgrade Opportunities", key="scan_customer_base")
-
-if scan_clicked or "opportunity_dashboard" in st.session_state:
-    if scan_clicked:
-        with st.spinner("Scanning original sales orders and line item history..."):
-            st.session_state.opportunity_dashboard = build_customer_opportunity_dashboard(upgrade_filter)
-            st.session_state.opportunity_dashboard_filter = upgrade_filter
-
-    dashboard_df = st.session_state.get("opportunity_dashboard", pd.DataFrame())
-    dashboard_filter = st.session_state.get("opportunity_dashboard_filter", upgrade_filter)
-    st.caption(f"Showing eligible original sales orders for: {dashboard_filter}")
-
-    if dashboard_df.empty:
-        st.info("No eligible opportunities found for this upgrade type.")
-    else:
-        d1, d2, d3 = st.columns(3)
-        with d1:
-            metric_card(len(dashboard_df), "Eligible Records")
-        with d2:
-            metric_card(dashboard_df["Original Sales Order"].nunique(), "Original SOs")
-        with d3:
-            metric_card(dashboard_df["Upgrade Type"].nunique(), "Upgrade Types")
-        st.dataframe(dashboard_df, use_container_width=True, hide_index=True)
-        st.download_button(
-            "Download Opportunity List as CSV",
-            dashboard_df.to_csv(index=False),
-            file_name="abt_trac_upgrade_opportunities.csv",
-            mime="text/csv",
-        )
-
-
-
-
-
-
-st.markdown('</div>', unsafe_allow_html=True)
 
 st.markdown(
     '<div class="footer-note">AI answers are based on uploaded sales order, line item, invoice, actuator seal kit, and upgrade opportunity records.</div>',
