@@ -1553,6 +1553,186 @@ def render_upgrade_cards(upgrade_opportunities):
         st.info("No applicable upgrade opportunities found.")
 
 
+
+def get_agent_priority(data):
+    service_message = str(data.get("service_message", "")).lower()
+    upgrade_count = len(data.get("upgrade_opportunities", []))
+    service_signal = "recommended" in service_message or "follow-up" in service_message
+
+    if service_signal and upgrade_count >= 1:
+        return "High", "Service follow-up and upgrade opportunity both identified."
+    if upgrade_count >= 2:
+        return "High", "Multiple upgrade opportunities identified."
+    if service_signal or upgrade_count == 1:
+        return "Medium", "One clear follow-up opportunity identified."
+    return "Low", "No immediate service or upgrade opportunity identified from the current records."
+
+
+def build_agent_evidence(data):
+    evidence = []
+    service_message = str(data.get("service_message", ""))
+    if service_message:
+        evidence.append(f"Service signal: {service_message}")
+
+    upgrades_found = data.get("upgrade_opportunities", [])
+    if upgrades_found:
+        for opp in upgrades_found:
+            upgrade_name = opp.get("Upgrade", "Upgrade opportunity")
+            matching_parts = opp.get("Matching Existing Parts", "")
+            if matching_parts:
+                evidence.append(f"{upgrade_name}: qualifying part history found: {matching_parts}")
+            else:
+                evidence.append(f"{upgrade_name}: applicable based on current upgrade rules.")
+            lit = opp.get("Literature", [])
+            if lit:
+                evidence.append(f"{upgrade_name}: supporting literature available: {', '.join([name for name, url in lit])}")
+    else:
+        evidence.append("No applicable upgrade opportunities were found for this vessel search.")
+
+    profile = data.get("boat_profile", {})
+    evidence.append(f"Related sales orders reviewed: {profile.get('Related Sales Orders', len(data.get('sales_context', [])))}")
+    evidence.append(f"Line items reviewed: {profile.get('Line Items', len(data.get('line_context', [])))}")
+    return evidence
+
+
+def build_next_best_actions(data):
+    actions = []
+    upgrades_found = data.get("upgrade_opportunities", [])
+    service_message = str(data.get("service_message", ""))
+
+    if "recommended" in service_message.lower() or "follow-up" in service_message.lower():
+        actions.append("Ask the customer or dealer whether actuator seal kits have been serviced recently.")
+        actions.append("Offer a preventive service review before the next operating season.")
+
+    for opp in upgrades_found[:4]:
+        upgrade_name = opp.get("Upgrade", "upgrade opportunity")
+        actions.append(f"Send supporting literature for {upgrade_name}.")
+        actions.append(f"Ask whether the vessel owner would like to review the benefits of {upgrade_name}.")
+
+    if not actions:
+        actions.append("Use this search as an account-history summary and ask whether there are current service issues or planned refit work.")
+
+    actions.append("Document the follow-up in CRM or Cetec notes after customer contact.")
+    return actions[:8]
+
+
+def render_agent_bullets(items):
+    if not items:
+        st.info("No agent items generated.")
+        return
+    st.markdown("<div class='ai-answer-html'><ul>" + "".join([f"<li>{safe_text(item)}</li>" for item in items]) + "</ul></div>", unsafe_allow_html=True)
+
+
+def build_agent_context(data, agent_task):
+    return f"""
+CURRENT BOAT PROFILE:
+{data.get('boat_profile', {})}
+
+OPPORTUNITY PRIORITY:
+{get_agent_priority(data)}
+
+NEXT BEST ACTIONS:
+{build_next_best_actions(data)}
+
+EVIDENCE:
+{build_agent_evidence(data)}
+
+SERVICE MESSAGE:
+{data.get('service_message', '')}
+
+UPGRADE OPPORTUNITIES:
+{opportunities_to_text(data.get('upgrade_opportunities', []))}
+
+AI SUMMARY:
+{data.get('ai_answer', '')}
+
+AGENT TASK:
+{agent_task}
+"""
+
+
+def render_ai_agent_tab(data):
+    section_header("AI Agent", "Sales Follow-Up Assistant")
+
+    priority, reason = get_agent_priority(data)
+    a1, a2, a3 = st.columns(3)
+    with a1:
+        metric_card(priority, "Opportunity Priority")
+    with a2:
+        metric_card(len(data.get("upgrade_opportunities", [])), "Upgrade Paths")
+    with a3:
+        service_flag = "Yes" if "recommended" in str(data.get("service_message", "")).lower() or "follow-up" in str(data.get("service_message", "")).lower() else "No"
+        metric_card(service_flag, "Service Follow-Up")
+
+    st.markdown(
+        f"""
+<div class="service-card">
+  <div class="upgrade-title">Agent Priority Rationale</div>
+  <div>{safe_text(reason)}</div>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
+    st.markdown("### Next Best Actions")
+    render_agent_bullets(build_next_best_actions(data))
+
+    st.markdown("### Why the Agent Recommends This")
+    render_agent_bullets(build_agent_evidence(data))
+
+    st.markdown("### Generate AI Sales Material")
+    agent_task = st.selectbox(
+        "Choose what the AI agent should create",
+        [
+            "Draft a concise customer follow-up email",
+            "Create a sales call script",
+            "Summarize the opportunity for a sales manager",
+            "Write an upgrade explanation in plain English",
+            "Create a prioritized follow-up plan",
+        ],
+        key="agent_task_selector",
+    )
+
+    custom_instruction = st.text_area(
+        "Optional custom instruction",
+        placeholder="Example: Make it shorter and focused on the Hydraulic to DC upgrade.",
+        height=80,
+        key="agent_custom_instruction",
+    )
+
+    if st.button("Run AI Sales Agent", key="run_ai_sales_agent"):
+        with st.spinner("AI Agent is generating sales guidance..."):
+            full_task = agent_task
+            if custom_instruction.strip():
+                full_task += "\nAdditional instruction: " + custom_instruction.strip()
+
+            client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+            agent_response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": """
+You are an ABT-TRAC sales enablement AI agent.
+Use only the provided records and recommendations.
+Do not invent prices, dates, or installed equipment.
+Be concise, practical, and sales-focused.
+When drafting customer-facing material, keep it professional and avoid sounding too aggressive.
+""",
+                    },
+                    {"role": "user", "content": build_agent_context(data, full_task)},
+                ],
+                temperature=0.25,
+            )
+            st.markdown(
+                f"""
+<div class="ai-answer-html">
+{simple_markdown_to_html(agent_response.choices[0].message.content)}
+</div>
+""",
+                unsafe_allow_html=True,
+            )
+
 def render_latest_analysis():
     data = st.session_state.latest_analysis
 
@@ -1635,53 +1815,7 @@ def render_latest_analysis():
             st.dataframe(data["invoice_context"], use_container_width=True, hide_index=True)
 
     with agent_tab:
-        section_header("AI Agent", "Sales Follow-Up Assistant")
-        agent_prompt = st.text_area(
-            "Ask the agent to draft a sales follow-up, call plan, or upgrade explanation.",
-            placeholder="Example: Draft a short follow-up email explaining the recommended upgrade opportunities for this vessel.",
-            height=100,
-        )
-        if st.button("Run AI Agent", key="run_ai_agent"):
-            if not agent_prompt.strip():
-                st.warning("Enter an agent instruction first.")
-            else:
-                with st.spinner("Generating sales follow-up guidance..."):
-                    agent_context = f"""
-CURRENT BOAT PROFILE:
-{data.get('boat_profile', {})}
-
-SERVICE MESSAGE:
-{data.get('service_message', '')}
-
-UPGRADE OPPORTUNITIES:
-{opportunities_to_text(data.get('upgrade_opportunities', []))}
-
-AI SUMMARY:
-{data.get('ai_answer', '')}
-
-USER REQUEST:
-{agent_prompt}
-"""
-                    client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-                    agent_response = client.chat.completions.create(
-                        model="gpt-4o-mini",
-                        messages=[
-                            {
-                                "role": "system",
-                                "content": "You are an ABT-TRAC sales enablement AI agent. Use only the provided context. Be concise, practical, and sales-focused.",
-                            },
-                            {"role": "user", "content": agent_context},
-                        ],
-                        temperature=0.25,
-                    )
-                    st.markdown(
-                        f"""
-<div class="ai-answer-html">
-{simple_markdown_to_html(agent_response.choices[0].message.content)}
-</div>
-""",
-                        unsafe_allow_html=True,
-                    )
+        render_ai_agent_tab(data)
 
 
 render_latest_analysis()
