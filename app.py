@@ -466,21 +466,21 @@ div[data-testid="stExpander"] * {{
 button[kind="primary"],
 button[kind="secondary"],
 button[kind="primary"] *,
-button[kind="secondary"] * {
+button[kind="secondary"] * {{
     color: #FFFFFF !important;
     font-weight: 900 !important;
-}
+}}
 
 .stButton button p,
 .stButton button span,
-.stButton button div {
+.stButton button div {{
     color: #FFFFFF !important;
-}
+}}
 
-.nav-caption {
+.nav-caption {{
     background: rgba(255,255,255,0.94) !important;
     color: #071A2F !important;
-}
+}}
 
 .search-card,
 .dashboard-card,
@@ -491,9 +491,9 @@ button[kind="secondary"] * {
 .upgrade-card,
 .profile-tile,
 .metric-card,
-div[data-testid="stExpander"] {
+div[data-testid="stExpander"] {{
     backdrop-filter: blur(6px);
-}
+}}
 
 </style>
 """,
