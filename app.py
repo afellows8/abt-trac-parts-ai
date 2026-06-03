@@ -1,11 +1,14 @@
 import html
 import re
+import json
+import asyncio
 from datetime import datetime
 
 import pandas as pd
 import streamlit as st
 from openai import OpenAI
 from PIL import Image
+import websockets
 
 st.set_page_config(
     page_title="ABT-TRAC AI",
@@ -456,6 +459,143 @@ def section_header(kicker, title):
         unsafe_allow_html=True,
     )
 
+
+
+# -----------------------------------------------------------------------------
+# Live AISStream helpers
+# -----------------------------------------------------------------------------
+
+async def aisstream_lookup_mmsi_async(mmsi, timeout_seconds=20):
+    """Listen to AISStream for one live PositionReport for a specific MMSI."""
+    api_key = st.secrets.get("AISSTREAM_API_KEY", "")
+    mmsi = str(mmsi).strip()
+
+    if not api_key:
+        return {"error": "AISSTREAM_API_KEY is missing from Streamlit Secrets."}
+    if not mmsi:
+        return {"error": "Enter an MMSI first."}
+
+    subscribe_message = {
+        "APIKey": api_key,
+        "BoundingBoxes": [[[-90, -180], [90, 180]]],
+        "FilterMessageTypes": ["PositionReport"],
+        "FiltersShipMMSI": [mmsi],
+    }
+
+    try:
+        async with websockets.connect("wss://stream.aisstream.io/v0/stream") as websocket:
+            await websocket.send(json.dumps(subscribe_message))
+
+            while True:
+                raw_message = await asyncio.wait_for(websocket.recv(), timeout=timeout_seconds)
+                message = json.loads(raw_message)
+                if message.get("MessageType") == "PositionReport":
+                    return message
+
+    except asyncio.TimeoutError:
+        return {"error": f"No live AIS position received for MMSI {mmsi} within {timeout_seconds} seconds. The vessel may be out of coverage or not transmitting right now."}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def aisstream_lookup_mmsi(mmsi, timeout_seconds=20):
+    """Synchronous wrapper for Streamlit button use."""
+    try:
+        return asyncio.run(aisstream_lookup_mmsi_async(mmsi, timeout_seconds))
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        try:
+            return loop.run_until_complete(aisstream_lookup_mmsi_async(mmsi, timeout_seconds))
+        finally:
+            loop.close()
+
+
+def parse_ais_position(message):
+    """Extract common AISStream fields safely from a PositionReport."""
+    metadata = message.get("MetaData", {}) or {}
+    report = ((message.get("Message", {}) or {}).get("PositionReport", {}) or {})
+
+    lat = report.get("Latitude", metadata.get("latitude"))
+    lon = report.get("Longitude", metadata.get("longitude"))
+
+    return {
+        "MMSI": metadata.get("MMSI", report.get("UserID", "Not found")),
+        "Ship Name": str(metadata.get("ShipName", "Unknown")).strip() or "Unknown",
+        "Latitude": lat,
+        "Longitude": lon,
+        "Speed Over Ground": report.get("Sog", "Not found"),
+        "Course Over Ground": report.get("Cog", "Not found"),
+        "True Heading": report.get("TrueHeading", "Not found"),
+        "Navigation Status": report.get("NavigationalStatus", "Not found"),
+        "AIS Timestamp": metadata.get("time_utc", report.get("Timestamp", "Live message received")),
+        "Raw Message": message,
+    }
+
+
+def render_live_ais_lookup():
+    st.markdown("### Live AIS Lookup")
+    st.caption("Enter a known MMSI. AISStream is live-stream based, so it may take up to 20 seconds to receive a fresh position report.")
+
+    mmsi_input = st.text_input(
+        "MMSI",
+        value="",
+        placeholder="Example: 338428057",
+        key="live_aisstream_mmsi",
+    )
+
+    col_a, col_b = st.columns([1, 2])
+    with col_a:
+        lookup_clicked = st.button("Get Live AIS Position", key="live_aisstream_button")
+
+    if lookup_clicked:
+        if not mmsi_input.strip():
+            st.warning("Enter an MMSI first.")
+            return
+
+        with st.spinner("Listening for live AIS data from AISStream..."):
+            result = aisstream_lookup_mmsi(mmsi_input.strip(), timeout_seconds=20)
+
+        if "error" in result:
+            st.error(result["error"])
+            st.info("Demo tip: try another MMSI from a vessel you can currently see on a public AIS site. Some yachts only transmit intermittently.")
+            return
+
+        parsed = parse_ais_position(result)
+        st.success("Live AIS position received.")
+
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            metric_card(parsed["Ship Name"], "AIS Vessel Name")
+        with c2:
+            metric_card(parsed["Speed Over Ground"], "Speed Over Ground")
+        with c3:
+            metric_card(parsed["Course Over Ground"], "Course Over Ground")
+
+        lat = parsed.get("Latitude")
+        lon = parsed.get("Longitude")
+        st.markdown(
+            f"""
+<div class="service-card">
+  <div class="upgrade-title">Live AIS Position</div>
+  <div><strong>MMSI:</strong> {safe_text(parsed['MMSI'])}</div>
+  <div><strong>Latitude:</strong> {safe_text(lat)}</div>
+  <div><strong>Longitude:</strong> {safe_text(lon)}</div>
+  <div><strong>True Heading:</strong> {safe_text(parsed['True Heading'])}</div>
+  <div><strong>Navigation Status Code:</strong> {safe_text(parsed['Navigation Status'])}</div>
+  <div><strong>AIS Timestamp:</strong> {safe_text(parsed['AIS Timestamp'])}</div>
+</div>
+""",
+            unsafe_allow_html=True,
+        )
+
+        try:
+            if lat is not None and lon is not None:
+                st.map(pd.DataFrame([{"lat": float(lat), "lon": float(lon)}]), zoom=8)
+        except Exception:
+            st.caption("Map could not render from the returned coordinates.")
+
+        with st.expander("Raw AISStream message", expanded=False):
+            st.json(parsed["Raw Message"])
 
 # -----------------------------------------------------------------------------
 # Data loading
@@ -1590,23 +1730,22 @@ def build_ais_intelligence(data):
 
 
 def render_ais_intelligence_tab(data):
-    section_header("AIS Intelligence", "Prototype Vessel Activity Layer")
+    section_header("AIS Intelligence", "Live Vessel Activity Layer")
     ais = build_ais_intelligence(data)
 
     c1, c2, c3 = st.columns(3)
     with c1:
-        metric_card(ais["Last Known Status"], "Activity Status")
+        metric_card(ais["Last Known Status"], "ERP Activity Status")
     with c2:
-        metric_card(ais["Estimated Operating Region"], "Estimated Region")
+        metric_card(ais["Estimated Operating Region"], "ERP Estimated Region")
     with c3:
-        metric_card(ais["Latest Record"], "Latest Record")
+        metric_card(ais["Latest Record"], "Latest ERP Record")
 
     st.markdown(
         f"""
 <div class="service-card">
-  <div class="upgrade-title">AIS Intelligence V1</div>
-  <div><strong>Activity Signal:</strong> {safe_text(ais['Activity Signal'])}</div>
-  <div><strong>Likely Operating Pattern:</strong> {safe_text(ais['Likely Operating Pattern'])}</div>
+  <div class="upgrade-title">AIS Intelligence V1 + Live AISStream Lookup</div>
+  <div><strong>ERP Activity Signal:</strong> {safe_text(ais['Activity Signal'])}</div>
   <div><strong>Recommended Sales Timing:</strong> {safe_text(ais['Recommended Sales Timing'])}</div>
   <div><strong>Recommended Sales Angle:</strong> {safe_text(ais['Recommended Sales Angle'])}</div>
 </div>
@@ -1614,14 +1753,16 @@ def render_ais_intelligence_tab(data):
         unsafe_allow_html=True,
     )
 
-    st.markdown("### Future Live AIS Integration")
+    render_live_ais_lookup()
+
+    st.markdown("### Demo-Day Note")
     st.markdown(
-        f"""
+        """
 <div class="ai-answer-html">
 <ul>
-  <li>{safe_text(ais['Future AIS Upgrade'])}</li>
-  <li>Use vessel activity to prioritize outreach before service season or refit windows.</li>
-  <li>Combine ERP history + upgrade rules + AIS movement to rank real-world sales opportunities.</li>
+  <li>This live AIS lookup uses MMSI because vessel names can be duplicated or changed.</li>
+  <li>If a vessel is not transmitting or AISStream has no current coverage, the lookup may time out.</li>
+  <li>The next production step is adding MMSI / IMO fields to the ERP boat profile and caching live results.</li>
 </ul>
 </div>
 """,
