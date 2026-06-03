@@ -37,7 +37,7 @@ st.markdown(
 
 [data-testid="stAppViewContainer"] {{
     background:
-        linear-gradient(120deg, rgba(0,0,0,0.10), rgba(0,0,0,0.10)),
+        linear-gradient(120deg, rgba(0,0,0,0.16), rgba(0,0,0,0.16)),
         url("{BACKGROUND_IMAGE_URL}");
     background-size: cover;
     background-position: center;
@@ -152,7 +152,7 @@ p, li, div {{
 }}
 
 .search-help {{
-    color: #FFFFFF;
+    color: #FFFFFF !important;
     background: linear-gradient(135deg, #0D4F7C, #102B49);
     font-size: 1.14rem;
     font-weight: 900;
@@ -459,81 +459,46 @@ div[data-testid="stExpander"] * {{
     background: rgba(255,255,255,0.99) !important;
 }}
 
-
-/* Final demo layout/readability overrides */
-.search-help,
-.search-help *,
-.search-help b {{
+.search-help, .search-help *, .search-help b {{
     color: #FFFFFF !important;
 }}
 
-/* Make Streamlit tabs look like top navigation */
-div[data-testid="stTabs"] button {{
-    background: linear-gradient(135deg, #0D4F7C, #102B49) !important;
-    color: #FFFFFF !important;
-    border-radius: 16px 16px 0 0 !important;
-    font-weight: 900 !important;
-    padding: 12px 18px !important;
+.stTabs [data-baseweb="tab-list"] {{
+    gap: 10px;
+    background: rgba(255,255,255,0.92);
+    border-radius: 18px;
+    padding: 10px;
+    box-shadow: 0 14px 34px rgba(7,28,49,0.16);
 }}
 
-div[data-testid="stTabs"] button * {{
+.stTabs [data-baseweb="tab"] {{
+    background: linear-gradient(135deg, #0D4F7C, #102B49);
     color: #FFFFFF !important;
+    border-radius: 14px;
+    padding: 10px 16px;
+    font-weight: 900;
 }}
 
-/* Make dropdown labels visible on the yacht background */
-div[data-testid="stSelectbox"] label,
-.stSelectbox label {{
-    color: #FFFFFF !important;
-    background: rgba(16,43,73,0.92) !important;
-    padding: 7px 12px !important;
-    border-radius: 10px !important;
-    font-weight: 900 !important;
-    display: inline-block !important;
-    margin-bottom: 8px !important;
-}}
-
-/* Make dark blue Streamlit buttons readable */
-.stButton button,
-.stButton button *,
-.stLinkButton a,
-.stLinkButton a * {{
+.stTabs [data-baseweb="tab"] * {{
     color: #FFFFFF !important;
 }}
 
+.stTabs [aria-selected="true"] {{
+    background: linear-gradient(135deg, #2D8AB8, #0D4F7C) !important;
+}}
 
-/* AI Agent cards */
-.agent-card {
+.agent-card {{
     background: rgba(255,255,255,0.985);
     border: 1px solid rgba(16,43,73,0.14);
     border-radius: 22px;
     box-shadow: 0 16px 48px rgba(7,28,49,0.14);
-    padding: 22px 26px;
-    border-top: 5px solid #C7A349;
+    padding: 22px 24px;
     color: #071A2F !important;
-}
-.agent-card, .agent-card * {
+}}
+
+.agent-card, .agent-card * {{
     color: #071A2F !important;
-}
-.agent-step {
-    background: rgba(13,79,124,0.08);
-    border-left: 5px solid #0D4F7C;
-    border-radius: 14px;
-    padding: 12px 14px;
-    margin: 10px 0;
-    color: #071A2F !important;
-}
-.agent-badge {
-    display: inline-block;
-    background: linear-gradient(135deg, #0D4F7C, #102B49);
-    color: #FFFFFF !important;
-    padding: 7px 12px;
-    border-radius: 999px;
-    font-weight: 900;
-    margin: 4px 6px 8px 0;
-}
-.agent-badge * {
-    color: #FFFFFF !important;
-}
+}}
 
 </style>
 """,
@@ -992,110 +957,6 @@ def opportunities_to_text(opportunities):
     return "\n".join(lines)
 
 
-
-
-def build_agent_brief(boat_profile, service_message, upgrade_opportunities, vessel_timeline):
-    # Creates a salesperson-ready AI agent plan from the analysis results.
-    upgrade_count = len(upgrade_opportunities)
-    service_recommended = "recommended" in str(service_message).lower()
-
-    if service_recommended and upgrade_count >= 1:
-        priority = "High"
-        next_action = "Contact customer with a combined service + upgrade review."
-    elif upgrade_count >= 1:
-        priority = "Medium"
-        next_action = "Contact customer with upgrade literature and ask whether they want a modernization review."
-    elif service_recommended:
-        priority = "Medium"
-        next_action = "Contact customer about service follow-up."
-    else:
-        priority = "Low"
-        next_action = "No immediate sales action. Keep as reference history."
-
-    upgrade_names = [opp.get("Upgrade", "Upgrade Opportunity") for opp in upgrade_opportunities]
-    literature = []
-    for opp in upgrade_opportunities:
-        for name, url in opp.get("Literature", []):
-            literature.append(name)
-
-    timeline_count = len(vessel_timeline or [])
-    boat_name = boat_profile.get("Boat / Hull", "this vessel") if boat_profile else "this vessel"
-    original_so = boat_profile.get("Original Sales Order", "Not found") if boat_profile else "Not found"
-
-    tasks = []
-    if service_recommended:
-        tasks.append("Review actuator seal kit history and confirm whether service is due.")
-    if upgrade_names:
-        tasks.append("Send applicable upgrade literature to the customer or dealer.")
-        tasks.append("Check whether the customer is interested in modernization or controls/electric upgrade options.")
-    tasks.append("Confirm current vessel ownership, location, and best service contact before quoting.")
-
-    questions = [
-        "Is the vessel still operating with the original equipment configuration?",
-        "Has any service or upgrade work been completed outside ABT-TRAC records?",
-        "Is the customer planning a yard period, refit, or seasonal service window?",
-    ]
-
-    return {
-        "Priority": priority,
-        "Next Action": next_action,
-        "Boat": boat_name,
-        "Original Sales Order": original_so,
-        "Upgrade Names": upgrade_names,
-        "Literature": literature,
-        "Timeline Events": timeline_count,
-        "Tasks": tasks,
-        "Questions": questions,
-    }
-
-
-def render_agent_brief(agent_brief):
-    if not agent_brief:
-        st.info("Run a Marine AI Analysis first to generate an agent plan.")
-        return
-
-    priority = safe_text(agent_brief.get("Priority", "Unknown"))
-    next_action = safe_text(agent_brief.get("Next Action", "No action generated."))
-    boat = safe_text(agent_brief.get("Boat", "Not found"))
-    original_so = safe_text(agent_brief.get("Original Sales Order", "Not found"))
-
-    upgrade_names = agent_brief.get("Upgrade Names", []) or []
-    literature = agent_brief.get("Literature", []) or []
-    tasks = agent_brief.get("Tasks", []) or []
-    questions = agent_brief.get("Questions", []) or []
-
-    upgrade_badges = "".join([f'<span class="agent-badge">{safe_text(x)}</span>' for x in upgrade_names]) or '<span class="agent-badge">No upgrade opportunity</span>'
-    task_html = "".join([f'<div class="agent-step">{safe_text(x)}</div>' for x in tasks])
-    question_html = "".join([f'<li>{safe_text(x)}</li>' for x in questions])
-    literature_html = "".join([f'<li>{safe_text(x)}</li>' for x in literature]) or "<li>No literature listed.</li>"
-
-    html_block = (
-        f'<div class="agent-card">'
-        f'<h3>AI Sales Agent</h3>'
-        f'<p><strong>Priority:</strong> {priority}</p>'
-        f'<p><strong>Vessel:</strong> {boat}</p>'
-        f'<p><strong>Original Sales Order:</strong> {original_so}</p>'
-        f'<p><strong>Recommended next action:</strong> {next_action}</p>'
-        f'<div>{upgrade_badges}</div>'
-        f'<h4>Agent Task List</h4>{task_html}'
-        f'<h4>Customer Questions to Ask</h4><ul>{question_html}</ul>'
-        f'<h4>Literature to Prepare</h4><ul>{literature_html}</ul>'
-        f'</div>'
-    )
-    st.markdown(html_block, unsafe_allow_html=True)
-
-    st.markdown("#### Suggested follow-up note")
-    note = (
-        f"Hi [Customer/Dealer],\n\n"
-        f"I reviewed our ABT-TRAC history for {boat} / Original SO {original_so}. "
-        f"Based on the records, there may be a {priority.lower()} opportunity for follow-up.\n\n"
-        f"Recommended next step: {next_action}\n\n"
-        f"Would you like us to review the current vessel configuration and confirm whether any service or upgrade work should be planned during the next yard period?\n\n"
-        f"Best,\nABT-TRAC Team"
-    )
-    st.text_area("Copy-ready note", note, height=190)
-
-
 def get_first_value(df, possible_cols):
     for col in possible_cols:
         if col and col in df.columns:
@@ -1321,6 +1182,60 @@ def build_customer_opportunity_dashboard(selected_upgrade="All Upgrade Types"):
 
 
 
+
+
+def run_sales_agent(agent_request, data):
+    """Use the latest analysis context to produce next-step sales guidance."""
+    upgrade_lines = []
+    for opp in data.get("upgrade_opportunities", []):
+        literature = ", ".join([name for name, url in opp.get("Literature", [])])
+        upgrade_lines.append(
+            f"- {opp.get('Upgrade','Upgrade')}; literature: {literature or 'none listed'}"
+        )
+
+    profile = data.get("boat_profile", {})
+    context = f"""
+BOAT PROFILE:
+{profile}
+
+SERVICE SIGNAL:
+{data.get('service_message', 'No service signal available')}
+
+UPGRADE OPPORTUNITIES:
+{chr(10).join(upgrade_lines) if upgrade_lines else 'No applicable upgrades found.'}
+
+AI SUMMARY:
+{data.get('ai_answer', '')}
+
+USER REQUEST TO AGENT:
+{agent_request}
+"""
+
+    client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {
+                "role": "system",
+                "content": """
+You are an ABT-TRAC internal sales agent. Your job is to turn vessel history,
+service signals, and upgrade eligibility into a practical salesperson action plan.
+Use only the provided context. Do not invent prices, customer commitments, or facts.
+Organize the answer into:
+1. Priority
+2. Recommended Next Action
+3. Talking Points
+4. Evidence From Records
+5. Follow-Up Email Draft
+Keep it concise and useful for a marine sales manager.
+""",
+            },
+            {"role": "user", "content": context},
+        ],
+        temperature=0.25,
+    )
+    return response.choices[0].message.content
+
 # -----------------------------------------------------------------------------
 # Session state
 # -----------------------------------------------------------------------------
@@ -1331,9 +1246,6 @@ if "latest_analysis" not in st.session_state:
 if "active_panel" not in st.session_state:
     st.session_state.active_panel = "summary"
 
-# -----------------------------------------------------------------------------
-# Header / demo-ready UI
-# -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
 # Header / demo-ready UI
 # -----------------------------------------------------------------------------
@@ -1355,6 +1267,7 @@ with hero_left:
     )
 
 with hero_right:
+    logo_col_a, logo_col_b = st.columns([4, 1])
     try:
         st.image(Image.open("ABT TRAC Logo.jpg"), width=210)
     except Exception:
@@ -1364,9 +1277,59 @@ with hero_right:
     except Exception:
         st.caption("Inov8v Marine")
 
-# -----------------------------------------------------------------------------
-# Search first: this keeps the boat / sales-order lookup above the opportunity dashboard
-# -----------------------------------------------------------------------------
+nav1, nav2, nav3, nav4 = st.columns(4)
+with nav1:
+    if st.button("⚓ Vessel History", key="btn_vessel_history"):
+        st.session_state.active_panel = "vessel"
+    st.markdown('<div class="nav-caption">Sales orders, line items, invoices, and related vessel records.</div>', unsafe_allow_html=True)
+with nav2:
+    if st.button("🔧 Service Signals", key="btn_service_signals"):
+        st.session_state.active_panel = "service"
+    st.markdown('<div class="nav-caption">Actuator seal kit timing and service follow-up opportunities.</div>', unsafe_allow_html=True)
+with nav3:
+    if st.button("↗ Upgrade Paths", key="btn_upgrade_paths"):
+        st.session_state.active_panel = "upgrades"
+    st.markdown('<div class="nav-caption">Applicable upgrades and supporting literature links.</div>', unsafe_allow_html=True)
+with nav4:
+    if st.button("AI Sales Summary", key="btn_sales_summary"):
+        st.session_state.active_panel = "summary"
+    st.markdown('<div class="nav-caption">Concise AI-generated summary for sales follow-up.</div>', unsafe_allow_html=True)
+
+section_header("Customer Opportunity Dashboard", "Find Eligible Original Sales Orders by Upgrade Type")
+st.markdown('<div class="dashboard-card">', unsafe_allow_html=True)
+upgrade_names = [str(x).strip() for x in upgrades.iloc[:, 0].dropna().tolist() if str(x).strip()]
+upgrade_filter = st.selectbox("Upgrade type", ["All Upgrade Types"] + upgrade_names, index=0)
+scan_clicked = st.button("Scan Customer Base for Eligible Upgrade Opportunities", key="scan_customer_base")
+
+if scan_clicked or "opportunity_dashboard" in st.session_state:
+    if scan_clicked:
+        with st.spinner("Scanning original sales orders and line item history..."):
+            st.session_state.opportunity_dashboard = build_customer_opportunity_dashboard(upgrade_filter)
+            st.session_state.opportunity_dashboard_filter = upgrade_filter
+
+    dashboard_df = st.session_state.get("opportunity_dashboard", pd.DataFrame())
+    dashboard_filter = st.session_state.get("opportunity_dashboard_filter", upgrade_filter)
+    st.caption(f"Showing eligible original sales orders for: {dashboard_filter}")
+
+    if dashboard_df.empty:
+        st.info("No eligible opportunities found for this upgrade type.")
+    else:
+        d1, d2, d3 = st.columns(3)
+        with d1:
+            metric_card(len(dashboard_df), "Eligible Records")
+        with d2:
+            metric_card(dashboard_df["Original Sales Order"].nunique(), "Original SOs")
+        with d3:
+            metric_card(dashboard_df["Upgrade Type"].nunique(), "Upgrade Types")
+        st.dataframe(dashboard_df, use_container_width=True, hide_index=True)
+        st.download_button(
+            "Download Opportunity List as CSV",
+            dashboard_df.to_csv(index=False),
+            file_name="abt_trac_upgrade_opportunities.csv",
+            mime="text/csv",
+        )
+
+st.markdown('</div>', unsafe_allow_html=True)
 
 st.markdown('<div class="search-card">', unsafe_allow_html=True)
 st.markdown('<div class="search-label">Search Vessel History, Service Opportunities, and Upgrade Recommendations</div>', unsafe_allow_html=True)
@@ -1385,7 +1348,7 @@ st.markdown('</div>', unsafe_allow_html=True)
 
 
 # -----------------------------------------------------------------------------
-# AI workflow
+# AI workflow and output
 # -----------------------------------------------------------------------------
 
 if ask_clicked:
@@ -1494,13 +1457,6 @@ Be concise and useful for a marine parts salesperson.
                 upgrade_opportunities,
             )
 
-            agent_brief = build_agent_brief(
-                boat_profile,
-                service_message,
-                upgrade_opportunities,
-                vessel_timeline,
-            )
-
             st.session_state.latest_analysis = {
                 "ai_answer": ai_answer,
                 "extracted_terms": extracted_terms,
@@ -1512,8 +1468,8 @@ Be concise and useful for a marine parts salesperson.
                 "upgrade_opportunities": upgrade_opportunities,
                 "boat_profile": boat_profile,
                 "vessel_timeline": vessel_timeline,
-                "agent_brief": agent_brief,
             }
+            st.session_state.active_panel = "summary"
 
 
 def render_upgrade_cards(upgrade_opportunities):
@@ -1549,16 +1505,15 @@ def render_latest_analysis():
 
     if not data:
         st.markdown(
-            '<div class="panel-note">Run a Marine AI Analysis above to generate a boat profile, timeline, service signals, upgrade paths, and AI sales summary.</div>',
+            '<div class="panel-note">Run a Marine AI Analysis, then use the tabs to review AI Summary, Vessel History, Service Signals, Upgrade Paths, Supporting Records, and the AI Agent.</div>',
             unsafe_allow_html=True,
         )
         return
 
-    # Boat Profile goes immediately under the search / Run Marine AI Analysis area.
     section_header("Analysis Complete", "Boat Profile")
     render_boat_profile(data.get("boat_profile", {}))
 
-    section_header("Analysis Complete", "Marine AI Dashboard")
+    section_header("Analysis Complete", "Marine AI Workspace")
 
     m1, m2, m3, m4 = st.columns(4)
     with m1:
@@ -1570,20 +1525,17 @@ def render_latest_analysis():
     with m4:
         metric_card(len(data["upgrade_opportunities"]), "Upgrade Opportunities")
 
-    agent_tab, summary_tab, vessel_tab, service_tab, upgrades_tab, records_tab = st.tabs([
-        "🤖 AI Agent",
-        "AI Sales Summary",
+    tab_summary, tab_vessel, tab_service, tab_upgrades, tab_records, tab_agent = st.tabs([
+        "AI Summary",
         "⚓ Vessel History",
         "🔧 Service Signals",
         "↗ Upgrade Paths",
         "Supporting Records",
+        "AI Agent",
     ])
 
-    with agent_tab:
-        section_header("AI Agent", "Next Best Action")
-        render_agent_brief(data.get("agent_brief"))
-
-    with summary_tab:
+    with tab_summary:
+        section_header("Sales Summary", "AI Recommendation")
         st.markdown(
             f"""
 <div class="ai-answer-html">
@@ -1593,11 +1545,11 @@ def render_latest_analysis():
             unsafe_allow_html=True,
         )
 
-    with vessel_tab:
+    with tab_vessel:
         section_header("Vessel History", "Vessel Timeline")
         render_vessel_timeline(data.get("vessel_timeline", []))
 
-    with service_tab:
+    with tab_service:
         section_header("Service Signals", "Recommended Service")
         st.markdown(
             f"""
@@ -1611,12 +1563,12 @@ def render_latest_analysis():
         with st.expander("Actuator seal kit rows", expanded=True):
             st.dataframe(data["seal_rows"], use_container_width=True, hide_index=True)
 
-    with upgrades_tab:
+    with tab_upgrades:
         section_header("Upgrade Paths", "Applicable Upgrades")
         render_upgrade_cards(data["upgrade_opportunities"])
 
-    with records_tab:
-        section_header("Supporting Records", "Evidence Used by ABT AI")
+    with tab_records:
+        section_header("Supporting Records", "Evidence Used by the AI")
         st.markdown(
             "".join([f'<span class="pill">{safe_text(term)}</span>' for term in data["extracted_terms"]])
             if data["extracted_terms"] else '<span class="pill">No search terms</span>',
@@ -1629,48 +1581,32 @@ def render_latest_analysis():
         with st.expander("Invoice / ship date records", expanded=False):
             st.dataframe(data["invoice_context"], use_container_width=True, hide_index=True)
 
+    with tab_agent:
+        section_header("AI Agent", "Sales Follow-Up Planner")
+        st.markdown(
+            '<div class="agent-card"><b>Ask the agent for a next-step sales plan, call notes, or follow-up email based on the current vessel analysis.</b></div>',
+            unsafe_allow_html=True,
+        )
+        agent_request = st.text_area(
+            "Agent request",
+            value="Create a concise sales follow-up plan for this vessel.",
+            height=100,
+            key="agent_request_box",
+        )
+        if st.button("Run AI Agent", key="run_ai_agent_button"):
+            with st.spinner("Building sales action plan..."):
+                agent_answer = run_sales_agent(agent_request, data)
+            st.markdown(
+                f"""
+<div class="ai-answer-html">
+{simple_markdown_to_html(agent_answer)}
+</div>
+""",
+                unsafe_allow_html=True,
+            )
+
 
 render_latest_analysis()
-
-# -----------------------------------------------------------------------------
-# Customer Opportunity Dashboard
-# -----------------------------------------------------------------------------
-
-section_header("Customer Opportunity Dashboard", "Find Eligible Original Sales Orders by Upgrade Type")
-st.markdown('<div class="dashboard-card">', unsafe_allow_html=True)
-upgrade_names = [str(x).strip() for x in upgrades.iloc[:, 0].dropna().tolist() if str(x).strip()]
-upgrade_filter = st.selectbox("Upgrade type", ["All Upgrade Types"] + upgrade_names, index=0)
-scan_clicked = st.button("Scan Customer Base for Eligible Upgrade Opportunities", key="scan_customer_base")
-
-if scan_clicked or "opportunity_dashboard" in st.session_state:
-    if scan_clicked:
-        with st.spinner("Scanning original sales orders and line item history..."):
-            st.session_state.opportunity_dashboard = build_customer_opportunity_dashboard(upgrade_filter)
-            st.session_state.opportunity_dashboard_filter = upgrade_filter
-
-    dashboard_df = st.session_state.get("opportunity_dashboard", pd.DataFrame())
-    dashboard_filter = st.session_state.get("opportunity_dashboard_filter", upgrade_filter)
-    st.caption(f"Showing eligible original sales orders for: {dashboard_filter}")
-
-    if dashboard_df.empty:
-        st.info("No eligible opportunities found for this upgrade type.")
-    else:
-        d1, d2, d3 = st.columns(3)
-        with d1:
-            metric_card(len(dashboard_df), "Eligible Records")
-        with d2:
-            metric_card(dashboard_df["Original Sales Order"].nunique(), "Original SOs")
-        with d3:
-            metric_card(dashboard_df["Upgrade Type"].nunique(), "Upgrade Types")
-        st.dataframe(dashboard_df, use_container_width=True, hide_index=True)
-        st.download_button(
-            "Download Opportunity List as CSV",
-            dashboard_df.to_csv(index=False),
-            file_name="abt_trac_upgrade_opportunities.csv",
-            mime="text/csv",
-        )
-
-st.markdown('</div>', unsafe_allow_html=True)
 
 st.markdown(
     '<div class="footer-note">AI answers are based on uploaded sales order, line item, invoice, actuator seal kit, and upgrade opportunity records.</div>',
