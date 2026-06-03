@@ -37,7 +37,7 @@ st.markdown(
 
 [data-testid="stAppViewContainer"] {{
     background:
-        linear-gradient(120deg, rgba(8,25,43,0.62) 0%, rgba(13,79,124,0.34) 34%, rgba(245,248,252,0.93) 72%),
+        linear-gradient(120deg, rgba(246,250,253,0.90), rgba(246,250,253,0.90)),
         url("{BACKGROUND_IMAGE_URL}");
     background-size: cover;
     background-position: center;
@@ -415,6 +415,50 @@ div[data-testid="stMarkdownContainer"] p {{
     color: #102B49;
 }}
 
+
+/* Final readability fix: keep generated output on clean white surfaces */
+.generated-output-card, .ai-answer-html, .opportunity-dashboard-shell {{
+    background: rgba(255,255,255,0.985);
+    border: 1px solid rgba(16,43,73,0.14);
+    border-radius: 22px;
+    box-shadow: 0 16px 48px rgba(7,28,49,0.14);
+    color: #071A2F !important;
+}}
+.ai-answer-html {{
+    padding: 24px 28px;
+    border-top: 5px solid #0D4F7C;
+}}
+.ai-answer-html, .ai-answer-html * {{
+    color: #071A2F !important;
+}}
+.ai-answer-html h1, .ai-answer-html h2, .ai-answer-html h3, .ai-answer-html strong {{
+    color: #061B31 !important;
+}}
+.timeline-box, .service-card, .upgrade-card, .profile-tile, .dashboard-card, .answer-card {{
+    background: rgba(255,255,255,0.985) !important;
+    color: #071A2F !important;
+}}
+.timeline-box *, .service-card *, .upgrade-card *, .profile-tile *, .dashboard-card *, .answer-card * {{
+    color: #071A2F !important;
+}}
+.stMarkdown, .stMarkdown *, div[data-testid="stMarkdownContainer"], div[data-testid="stMarkdownContainer"] *,
+.stCaptionContainer, .stCaptionContainer *, label, .stSelectbox label, .stTextArea label, .stTextInput label {{
+    color: #071A2F !important;
+}}
+div[data-testid="stExpander"] {{
+    background: rgba(255,255,255,0.985) !important;
+}}
+div[data-testid="stExpander"] * {{
+    color: #071A2F !important;
+}}
+.stSelectbox > div > div {{
+    background-color: rgba(255,255,255,0.98) !important;
+    color: #071A2F !important;
+}}
+[data-testid="stDataFrame"] {{
+    background: rgba(255,255,255,0.99) !important;
+}}
+
 </style>
 """,
     unsafe_allow_html=True,
@@ -423,6 +467,63 @@ div[data-testid="stMarkdownContainer"] p {{
 
 def safe_text(value):
     return html.escape(str(value))
+
+
+def simple_markdown_to_html(markdown_text):
+    """Small markdown renderer for the AI answer so it stays inside a readable white card."""
+    lines = str(markdown_text).splitlines()
+    html_lines = []
+    in_ul = False
+    in_ol = False
+
+    def close_lists():
+        nonlocal in_ul, in_ol
+        if in_ul:
+            html_lines.append("</ul>")
+            in_ul = False
+        if in_ol:
+            html_lines.append("</ol>")
+            in_ol = False
+
+    for raw in lines:
+        line = raw.strip()
+        if not line:
+            close_lists()
+            html_lines.append("<br>")
+            continue
+
+        escaped = safe_text(line)
+        escaped = re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", escaped)
+
+        if re.match(r"^#{1,3}\s+", line):
+            close_lists()
+            level = min(line.count("#", 0, line.find(" ")), 3)
+            content = safe_text(line[level:].strip())
+            html_lines.append(f"<h{level}>{content}</h{level}>")
+        elif re.match(r"^\d+\.\s+", line):
+            if in_ul:
+                html_lines.append("</ul>")
+                in_ul = False
+            if not in_ol:
+                html_lines.append("<ol>")
+                in_ol = True
+            item = re.sub(r"^\d+\.\s+", "", escaped)
+            html_lines.append(f"<li>{item}</li>")
+        elif line.startswith("- ") or line.startswith("• "):
+            if in_ol:
+                html_lines.append("</ol>")
+                in_ol = False
+            if not in_ul:
+                html_lines.append("<ul>")
+                in_ul = True
+            item = escaped[2:].strip()
+            html_lines.append(f"<li>{item}</li>")
+        else:
+            close_lists()
+            html_lines.append(f"<p>{escaped}</p>")
+
+    close_lists()
+    return "\n".join(html_lines)
 
 
 def markdown_card(title, body, icon="✓"):
@@ -940,22 +1041,29 @@ def render_vessel_timeline(events):
         st.info("No timeline events found for this search.")
         return
 
-    st.markdown('<div class="timeline-box">', unsafe_allow_html=True)
+    items = []
     for event in events:
         date = safe_text(event.get("date", ""))
         title = safe_text(event.get("title", ""))
         copy = safe_text(event.get("copy", ""))
-        st.markdown(
+        items.append(
             f"""
 <div class="timeline-item">
   <div class="timeline-date">{date}</div>
   <div class="timeline-title">{title}</div>
   <div class="timeline-copy">{copy}</div>
 </div>
-""",
-            unsafe_allow_html=True,
+"""
         )
-    st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown(
+        f"""
+<div class="timeline-box">
+{''.join(items)}
+</div>
+""",
+        unsafe_allow_html=True,
+    )
 
 
 def evaluate_upgrade_for_part_history(row, part_history):
@@ -1326,9 +1434,14 @@ def render_latest_analysis():
 
     if active == "summary":
         section_header("Sales Summary", "AI Recommendation")
-        st.markdown('<div class="answer-card">', unsafe_allow_html=True)
-        st.markdown(data["ai_answer"])
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown(
+            f"""
+<div class="ai-answer-html">
+{simple_markdown_to_html(data["ai_answer"])}
+</div>
+""",
+            unsafe_allow_html=True,
+        )
 
     elif active == "service":
         section_header("Service Signals", "Recommended Service")
