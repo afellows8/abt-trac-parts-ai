@@ -273,6 +273,29 @@ p, li, div {{
     box-shadow: 0 12px 36px rgba(7,28,49,0.10);
 }}
 
+.revenue-card {{
+    background: linear-gradient(135deg, rgba(13,79,124,0.12), rgba(255,255,255,0.96));
+    border: 1px solid rgba(13,79,124,0.22);
+    border-radius: 20px;
+    padding: 18px 20px;
+    box-shadow: 0 12px 36px rgba(7,28,49,0.10);
+    margin-bottom: 12px;
+}}
+
+.evidence-card {{
+    background: rgba(255,255,255,0.95);
+    border: 1px solid rgba(16,43,73,0.14);
+    border-radius: 20px;
+    padding: 18px 20px;
+    box-shadow: 0 12px 36px rgba(7,28,49,0.10);
+    margin-bottom: 12px;
+}}
+
+.evidence-card ul {{
+    margin-top: 8px;
+    margin-bottom: 0;
+}}
+
 .upgrade-card {{
     background: rgba(255,255,255,0.95);
     border: 1px solid rgba(13,79,124,0.18);
@@ -679,6 +702,85 @@ def get_upgrade_links(row):
     return links
 
 
+
+def get_upgrade_revenue_estimate(upgrade_name):
+    name = str(upgrade_name).lower()
+
+    if "tracstar" in name or "trac star" in name:
+        return 15000, 35000, "TRACStar upgrade estimate"
+
+    if "dc" in name or "electric" in name or "conversion" in name:
+        return 40000, 120000, "Hydraulic-to-electric conversion estimate"
+
+    if "seal" in name or "service" in name:
+        return 2500, 10000, "Service parts estimate"
+
+    return 10000, 30000, "General upgrade estimate"
+
+
+def format_money(value):
+    try:
+        return f"${int(value):,}"
+    except Exception:
+        return "$0"
+
+
+def calculate_revenue_opportunity(upgrade_opportunities, service_message):
+    low_total = 0
+    high_total = 0
+    details = []
+
+    if "recommended service" in str(service_message).lower():
+        low_total += 2500
+        high_total += 10000
+        details.append({
+            "Name": "Actuator seal kit / service follow-up",
+            "Range": "$2,500 - $10,000",
+            "Basis": "Service recommended by seal kit timing/history logic",
+        })
+
+    for opp in upgrade_opportunities:
+        low, high, basis = get_upgrade_revenue_estimate(opp.get("Upgrade", ""))
+        low_total += low
+        high_total += high
+        details.append({
+            "Name": opp.get("Upgrade", "Upgrade opportunity"),
+            "Range": f"{format_money(low)} - {format_money(high)}",
+            "Basis": basis,
+        })
+
+    return low_total, high_total, details
+
+
+def build_evidence_items(extracted_terms, related_sos, sales_context, line_context, invoice_context, service_message, seal_rows, upgrade_opportunities, part_history):
+    items = []
+
+    if extracted_terms:
+        items.append(f"Search terms used: {', '.join(map(str, extracted_terms))}")
+
+    if related_sos:
+        preview_sos = sorted(list(related_sos))[:8]
+        more = "" if len(related_sos) <= 8 else f" + {len(related_sos) - 8} more"
+        items.append(f"Related sales orders identified: {', '.join(preview_sos)}{more}")
+
+    items.append(f"Records reviewed: {len(sales_context)} sales orders, {len(line_context)} line items, {len(invoice_context)} invoice records")
+    items.append(f"Unique part numbers found in vessel history: {len(part_history)}")
+    items.append(f"Service evidence: {service_message}")
+
+    if not seal_rows.empty:
+        items.append(f"Actuator seal kit matching rows found: {len(seal_rows)}")
+    else:
+        items.append("Actuator seal kit matching rows found: 0")
+
+    if upgrade_opportunities:
+        for opp in upgrade_opportunities:
+            match_text = opp.get("Matching Existing Parts", "") or "qualifier not required"
+            items.append(f"Upgrade evidence for {opp.get('Upgrade')}: existing qualifying part(s): {match_text}; installed upgrade part not found in vessel history")
+    else:
+        items.append("Upgrade evidence: no applicable upgrade opportunities found under current rules")
+
+    return items
+
 def analyze_upgrade_opportunities(question, sales_matches):
     related_sales, related_lines, related_invoices, related_sos = get_related_history(
         question,
@@ -706,10 +808,13 @@ def analyze_upgrade_opportunities(question, sales_matches):
         has_qualifying_part = any(part in part_history for part in qualifying_parts) if qualifying_parts else True
 
         if (not has_blocking_part) and has_qualifying_part:
+            low, high, basis = get_upgrade_revenue_estimate(upgrade_name)
             opportunities.append({
                 "Upgrade": upgrade_name,
                 "Matching Existing Parts": ", ".join([p for p in qualifying_parts if p in part_history]),
                 "Literature": get_upgrade_links(row),
+                "Revenue Range": f"{format_money(low)} - {format_money(high)}",
+                "Revenue Basis": basis,
             })
 
     return opportunities
@@ -825,6 +930,22 @@ if ask_clicked:
 
             upgrade_opportunities = analyze_upgrade_opportunities(question, sales_matches)
             upgrade_text = opportunities_to_text(upgrade_opportunities)
+            part_history = get_part_history_set(line_context)
+            revenue_low, revenue_high, revenue_details = calculate_revenue_opportunity(
+                upgrade_opportunities,
+                service_message,
+            )
+            evidence_items = build_evidence_items(
+                extracted_terms,
+                related_sos,
+                sales_context,
+                line_context,
+                invoice_context,
+                service_message,
+                seal_rows,
+                upgrade_opportunities,
+                part_history,
+            )
 
             context = f"""
 USER QUESTION:
@@ -838,6 +959,9 @@ RECOMMENDED SERVICE:
 
 UPGRADE OPPORTUNITIES:
 {upgrade_text}
+
+ESTIMATED REVENUE OPPORTUNITY:
+{format_money(revenue_low)} - {format_money(revenue_high)}
 
 MATCHING SALES ORDER RECORDS:
 {compact_table_text(sales_context)}
@@ -874,7 +998,8 @@ Organize answers into:
 1. Summary
 2. Recommended Service
 3. Upgrade Opportunities
-4. Supporting Records
+4. Estimated Revenue Opportunity
+5. Supporting Records
 
 Use only the records provided.
 Do not invent facts.
@@ -899,6 +1024,10 @@ Be concise and useful for a marine parts salesperson.
                 "service_message": service_message,
                 "seal_rows": seal_rows,
                 "upgrade_opportunities": upgrade_opportunities,
+                "revenue_low": revenue_low,
+                "revenue_high": revenue_high,
+                "revenue_details": revenue_details,
+                "evidence_items": evidence_items,
             }
             st.session_state.active_panel = "summary"
 
@@ -910,6 +1039,7 @@ def render_upgrade_cards(upgrade_opportunities):
                 f"""
 <div class="upgrade-card">
   <div class="upgrade-title">{safe_text(opp['Upgrade'])}</div>
+  <div><b>Estimated opportunity:</b> {safe_text(opp.get('Revenue Range', 'Estimate pending'))}</div>
   <div class="small-muted">Supporting literature</div>
 """,
                 unsafe_allow_html=True,
@@ -929,6 +1059,39 @@ def render_upgrade_cards(upgrade_opportunities):
         st.info("No applicable upgrade opportunities found.")
 
 
+
+def render_revenue_opportunity(data):
+    section_header("Business Value", "Estimated Revenue Opportunity")
+    st.markdown(
+        f"""
+<div class="revenue-card">
+  <div class="upgrade-title">Estimated Opportunity: {safe_text(format_money(data['revenue_low']))} - {safe_text(format_money(data['revenue_high']))}</div>
+  <div class="small-muted">Directional estimate for demo purposes. Final quote requires salesperson review.</div>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
+    if data["revenue_details"]:
+        revenue_df = pd.DataFrame(data["revenue_details"])
+        st.dataframe(revenue_df, use_container_width=True, hide_index=True)
+    else:
+        st.info("No revenue opportunity estimated from current service or upgrade rules.")
+
+
+def render_evidence(data):
+    section_header("Explainability", "Why This Recommendation Was Made")
+    evidence_html = "".join([f"<li>{safe_text(item)}</li>" for item in data.get("evidence_items", [])])
+    st.markdown(
+        f"""
+<div class="evidence-card">
+  <div class="upgrade-title">Evidence Used by ABT-TRAC AI</div>
+  <ul>{evidence_html}</ul>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
 def render_latest_analysis():
     data = st.session_state.latest_analysis
 
@@ -941,7 +1104,7 @@ def render_latest_analysis():
 
     section_header("Analysis Complete", "Marine AI Dashboard")
 
-    m1, m2, m3, m4 = st.columns(4)
+    m1, m2, m3, m4, m5 = st.columns(5)
     with m1:
         metric_card(len(data["sales_context"]), "Sales Orders")
     with m2:
@@ -949,7 +1112,9 @@ def render_latest_analysis():
     with m3:
         metric_card(len(data["invoice_context"]), "Invoice Records")
     with m4:
-        metric_card(len(data["upgrade_opportunities"]), "Upgrade Opportunities")
+        metric_card(len(data["upgrade_opportunities"]), "Upgrades")
+    with m5:
+        metric_card(f"{format_money(data['revenue_low'])}-{format_money(data['revenue_high'])}", "Revenue Estimate")
 
     active = st.session_state.active_panel
 
@@ -958,8 +1123,11 @@ def render_latest_analysis():
         st.markdown('<div class="answer-card">', unsafe_allow_html=True)
         st.markdown(data["ai_answer"])
         st.markdown('</div>', unsafe_allow_html=True)
+        render_revenue_opportunity(data)
+        render_evidence(data)
 
     elif active == "service":
+        render_revenue_opportunity(data)
         section_header("Service Signals", "Recommended Service")
         st.markdown(
             f"""
@@ -970,12 +1138,15 @@ def render_latest_analysis():
 """,
             unsafe_allow_html=True,
         )
+        render_evidence(data)
         with st.expander("Actuator seal kit rows", expanded=True):
             st.dataframe(data["seal_rows"], use_container_width=True, hide_index=True)
 
     elif active == "upgrades":
+        render_revenue_opportunity(data)
         section_header("Upgrade Paths", "Applicable Upgrades")
         render_upgrade_cards(data["upgrade_opportunities"])
+        render_evidence(data)
 
     elif active == "vessel":
         section_header("Vessel History", "Supporting Records")
