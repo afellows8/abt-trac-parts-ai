@@ -1186,34 +1186,51 @@ def build_vessel_timeline(sales_context, invoice_context, seal_rows, upgrade_opp
     return sorted(events, key=sort_key)[:18]
 
 
-def render_vessel_timeline(events):
+def render_vessel_timeline(events, line_context=None):
     if not events:
         st.info("No timeline events found for this search.")
         return
 
-    items = []
+    line_context = line_context if line_context is not None else pd.DataFrame()
+    line_so_col = get_first_matching_col(line_context, ["sales order", "so number", "order number", "so"]) if not line_context.empty else None
+    part_col = get_part_number_col(line_context) if not line_context.empty else None
+    desc_col = get_first_matching_col(line_context, ["description", "item description", "part description", "desc"]) if not line_context.empty else None
+    qty_col = get_first_matching_col(line_context, ["qty", "quantity"]) if not line_context.empty else None
+
+    st.markdown('<div class="timeline-box">', unsafe_allow_html=True)
+
     for event in events:
-        date = safe_text(event.get("date", ""))
+        so_raw = str(event.get("date", "")).replace("SO", "").strip()
         title = safe_text(event.get("title", ""))
         copy = safe_text(event.get("copy", ""))
-        items.append(
-            f"""
-<div class="timeline-item">
-  <div class="timeline-date">{date}</div>
-  <div class="timeline-title">{title}</div>
-  <div class="timeline-copy">{copy}</div>
-</div>
-"""
-        )
+        label = f"SO {safe_text(so_raw)} — {title}" if so_raw else title
 
-    st.markdown(
-        f"""
-<div class="timeline-box">
-{''.join(items)}
-</div>
-""",
-        unsafe_allow_html=True,
-    )
+        with st.expander(label, expanded=False):
+            st.markdown(f"**{title}**")
+            if copy:
+                st.write(copy)
+
+            if line_so_col and part_col and so_raw:
+                so_lines = line_context[line_context[line_so_col].map(normalize_so) == so_raw].copy()
+
+                if so_lines.empty:
+                    st.caption("No line item detail found for this sales order.")
+                else:
+                    display_cols = []
+                    for col in [part_col, desc_col, qty_col]:
+                        if col and col in so_lines.columns and col not in display_cols:
+                            display_cols.append(col)
+
+                    if display_cols:
+                        st.dataframe(
+                            so_lines[display_cols].drop_duplicates().head(50),
+                            use_container_width=True,
+                            hide_index=True,
+                        )
+                    else:
+                        st.dataframe(so_lines.head(50), use_container_width=True, hide_index=True)
+
+    st.markdown('</div>', unsafe_allow_html=True)
 
 
 def evaluate_upgrade_for_part_history(row, part_history):
@@ -1583,7 +1600,7 @@ def render_latest_analysis():
 
     with vessel_tab:
         section_header("Vessel History", "Vessel Timeline")
-        render_vessel_timeline(data.get("vessel_timeline", []))
+        render_vessel_timeline(data.get("vessel_timeline", []), data.get("line_context", pd.DataFrame()))
 
     with service_tab:
         section_header("Service Signals", "Recommended Service")
