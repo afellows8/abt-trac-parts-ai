@@ -864,10 +864,12 @@ def looks_like_hull_or_project(value):
 
 
 def get_known_vessel_names(sales_context):
-    """Demo-safe vessel names: pull ONLY from Hull Project, never Order Name.
+    """Demo-safe vessel labels: pull ONLY from Hull Project / column C.
 
-    Order Name can contain customer/person/company names, so it is intentionally
-    excluded from the visible Boat Profile.
+    This intentionally does NOT read Order Name / column D because that field can
+    contain customer, contact, company, or personal names. Unlike the older
+    filter, this keeps Hull Project values even when they contain model numbers
+    like HAMPTON E 700-27, because those are safe vessel/project labels.
     """
     hull_col = get_exact_col(sales_context, "Hull Project")
     if not hull_col or sales_context.empty:
@@ -877,8 +879,6 @@ def get_known_vessel_names(sales_context):
     seen = set()
     for value in sales_context[hull_col].dropna().astype(str).str.strip():
         if not value or value.lower() == "nan":
-            continue
-        if looks_like_hull_or_project(value):
             continue
         key = value.upper()
         if key not in seen:
