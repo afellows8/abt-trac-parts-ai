@@ -195,6 +195,30 @@ p, li, div {{
     color: white !important;
 }}
 
+.nav-caption {{
+    background: rgba(255,255,255,0.92);
+    border: 1px solid rgba(16,43,73,0.12);
+    border-radius: 0 0 18px 18px;
+    padding: 8px 12px 12px 12px;
+    margin-top: -8px;
+    margin-bottom: 8px;
+    min-height: 54px;
+    color: var(--abt-muted);
+    font-size: 0.86rem;
+    line-height: 1.32;
+    box-shadow: 0 14px 34px rgba(7,28,49,0.10);
+}}
+
+.panel-note {{
+    background: rgba(255,255,255,0.92);
+    border: 1px solid rgba(16,43,73,0.12);
+    border-radius: 18px;
+    padding: 16px 18px;
+    margin-top: 12px;
+    color: var(--abt-muted);
+    font-weight: 700;
+}}
+
 .metric-card {{
     padding: 17px 18px;
     border-left: 5px solid var(--abt-gold);
@@ -736,15 +760,23 @@ with hero_right:
     except Exception:
         st.caption("Inov8v Marine")
 
-cap1, cap2, cap3, cap4 = st.columns(4)
-with cap1:
-    markdown_card("Vessel History", "Connects related sales orders by original vessel history.", "⚓")
-with cap2:
-    markdown_card("Service Signals", "Flags actuator seal kit follow-up and service timing.", "🔧")
-with cap3:
-    markdown_card("Upgrade Paths", "Finds applicable upgrades without showing ineligible noise.", "↗")
-with cap4:
-    markdown_card("Sales Summary", "Generates concise, salesperson-ready customer notes.", "AI")
+nav1, nav2, nav3, nav4 = st.columns(4)
+with nav1:
+    if st.button("⚓ Vessel History", key="btn_vessel_history"):
+        st.session_state.active_panel = "vessel"
+    st.markdown('<div class="nav-caption">Sales orders, line items, invoices, and related vessel records.</div>', unsafe_allow_html=True)
+with nav2:
+    if st.button("🔧 Service Signals", key="btn_service_signals"):
+        st.session_state.active_panel = "service"
+    st.markdown('<div class="nav-caption">Actuator seal kit timing and service follow-up opportunities.</div>', unsafe_allow_html=True)
+with nav3:
+    if st.button("↗ Upgrade Paths", key="btn_upgrade_paths"):
+        st.session_state.active_panel = "upgrades"
+    st.markdown('<div class="nav-caption">Applicable upgrades and supporting literature links.</div>', unsafe_allow_html=True)
+with nav4:
+    if st.button("AI Sales Summary", key="btn_sales_summary"):
+        st.session_state.active_panel = "summary"
+    st.markdown('<div class="nav-caption">Concise AI-generated summary for sales follow-up.</div>', unsafe_allow_html=True)
 
 st.markdown('<div class="search-card">', unsafe_allow_html=True)
 st.markdown('<div class="search-label">Search Vessel History, Service Opportunities, and Upgrade Recommendations</div>', unsafe_allow_html=True)
@@ -858,77 +890,109 @@ Be concise and useful for a marine parts salesperson.
 
             ai_answer = response.choices[0].message.content
 
-        section_header("Analysis Complete", "Marine AI Recommendation")
+            st.session_state.latest_analysis = {
+                "ai_answer": ai_answer,
+                "extracted_terms": extracted_terms,
+                "sales_context": sales_context,
+                "line_context": line_context,
+                "invoice_context": invoice_context,
+                "service_message": service_message,
+                "seal_rows": seal_rows,
+                "upgrade_opportunities": upgrade_opportunities,
+            }
+            st.session_state.active_panel = "summary"
 
-        m1, m2, m3, m4 = st.columns(4)
-        with m1:
-            metric_card(len(sales_context), "Sales Orders")
-        with m2:
-            metric_card(len(line_context), "Line Items")
-        with m3:
-            metric_card(len(invoice_context), "Invoice Records")
-        with m4:
-            metric_card(len(upgrade_opportunities), "Upgrade Opportunities")
 
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown('<div class="answer-card">', unsafe_allow_html=True)
-        st.markdown(ai_answer)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-        section_header("Recommended Service", "Service Follow-Up")
-        st.markdown(
-            f"""
-<div class="service-card">
-  <div class="upgrade-title">Actuator Seal Kit Review</div>
-  <div>{safe_text(service_message)}</div>
-</div>
-""",
-            unsafe_allow_html=True,
-        )
-
-        section_header("Revenue Opportunities", "Applicable Upgrades")
-        if upgrade_opportunities:
-            for opp in upgrade_opportunities:
-                st.markdown(
-                    f"""
+def render_upgrade_cards(upgrade_opportunities):
+    if upgrade_opportunities:
+        for opp in upgrade_opportunities:
+            st.markdown(
+                f"""
 <div class="upgrade-card">
   <div class="upgrade-title">{safe_text(opp['Upgrade'])}</div>
   <div class="small-muted">Supporting literature</div>
 """,
-                    unsafe_allow_html=True,
-                )
+                unsafe_allow_html=True,
+            )
 
-                if opp["Literature"]:
-                    for name, url in opp["Literature"]:
-                        st.markdown(
-                            f'<div class="lit-link">• <a href="{safe_text(url)}" target="_blank">{safe_text(name)}</a></div>',
-                            unsafe_allow_html=True,
-                        )
-                else:
-                    st.caption("No literature file listed.")
+            if opp["Literature"]:
+                for name, url in opp["Literature"]:
+                    st.markdown(
+                        f'<div class="lit-link">• <a href="{safe_text(url)}" target="_blank">{safe_text(name)}</a></div>',
+                        unsafe_allow_html=True,
+                    )
+            else:
+                st.caption("No literature file listed.")
 
-                st.markdown("</div>", unsafe_allow_html=True)
-        else:
-            st.info("No applicable upgrade opportunities found.")
+            st.markdown("</div>", unsafe_allow_html=True)
+    else:
+        st.info("No applicable upgrade opportunities found.")
 
-        section_header("Supporting Records", "Evidence Used by the AI")
+
+def render_latest_analysis():
+    data = st.session_state.latest_analysis
+
+    if not data:
         st.markdown(
-            "".join([f'<span class="pill">{safe_text(term)}</span>' for term in extracted_terms])
-            if extracted_terms else '<span class="pill">No search terms</span>',
+            '<div class="panel-note">Run a Marine AI Analysis, then use the top buttons to switch between Vessel History, Service Signals, Upgrade Paths, and Sales Summary.</div>',
             unsafe_allow_html=True,
         )
+        return
 
-        with st.expander("Sales order records", expanded=False):
-            st.dataframe(sales_context, use_container_width=True, hide_index=True)
+    section_header("Analysis Complete", "Marine AI Dashboard")
 
+    m1, m2, m3, m4 = st.columns(4)
+    with m1:
+        metric_card(len(data["sales_context"]), "Sales Orders")
+    with m2:
+        metric_card(len(data["line_context"]), "Line Items")
+    with m3:
+        metric_card(len(data["invoice_context"]), "Invoice Records")
+    with m4:
+        metric_card(len(data["upgrade_opportunities"]), "Upgrade Opportunities")
+
+    active = st.session_state.active_panel
+
+    if active == "summary":
+        section_header("Sales Summary", "AI Recommendation")
+        st.markdown('<div class="answer-card">', unsafe_allow_html=True)
+        st.markdown(data["ai_answer"])
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    elif active == "service":
+        section_header("Service Signals", "Recommended Service")
+        st.markdown(
+            f"""
+<div class="service-card">
+  <div class="upgrade-title">Actuator Seal Kit Review</div>
+  <div>{safe_text(data['service_message'])}</div>
+</div>
+""",
+            unsafe_allow_html=True,
+        )
+        with st.expander("Actuator seal kit rows", expanded=True):
+            st.dataframe(data["seal_rows"], use_container_width=True, hide_index=True)
+
+    elif active == "upgrades":
+        section_header("Upgrade Paths", "Applicable Upgrades")
+        render_upgrade_cards(data["upgrade_opportunities"])
+
+    elif active == "vessel":
+        section_header("Vessel History", "Supporting Records")
+        st.markdown(
+            "".join([f'<span class="pill">{safe_text(term)}</span>' for term in data["extracted_terms"]])
+            if data["extracted_terms"] else '<span class="pill">No search terms</span>',
+            unsafe_allow_html=True,
+        )
+        with st.expander("Sales order records", expanded=True):
+            st.dataframe(data["sales_context"], use_container_width=True, hide_index=True)
         with st.expander("Line item records", expanded=False):
-            st.dataframe(line_context, use_container_width=True, hide_index=True)
-
+            st.dataframe(data["line_context"], use_container_width=True, hide_index=True)
         with st.expander("Invoice / ship date records", expanded=False):
-            st.dataframe(invoice_context, use_container_width=True, hide_index=True)
+            st.dataframe(data["invoice_context"], use_container_width=True, hide_index=True)
 
-        with st.expander("Actuator seal kit rows", expanded=False):
-            st.dataframe(seal_rows, use_container_width=True, hide_index=True)
+
+render_latest_analysis()
 
 st.markdown(
     '<div class="footer-note">AI answers are based on uploaded sales order, line item, invoice, actuator seal kit, and upgrade opportunity records.</div>',
