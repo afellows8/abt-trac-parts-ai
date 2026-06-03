@@ -494,8 +494,36 @@ sales_orders, line_items, invoices, seal_kits, upgrades = load_data()
 # Business logic helpers
 # -----------------------------------------------------------------------------
 
+def normalize_col_name(value):
+    return re.sub(r"[^a-z0-9]", "", str(value).lower())
+
+
 def find_cols(df, keywords):
-    return [col for col in df.columns if any(k in str(col).lower() for k in keywords)]
+    """Find likely columns even when exports use names like aSaleOrderNo_n."""
+    matches = []
+    for col in df.columns:
+        col_text = str(col).lower()
+        col_norm = normalize_col_name(col)
+        for keyword in keywords:
+            key_text = str(keyword).lower()
+            key_norm = normalize_col_name(keyword)
+
+            if key_text in col_text or key_norm in col_norm:
+                matches.append(col)
+                break
+
+            # Cetec-style invoice export: aSaleOrderNo_n
+            if key_norm in {"salesorder", "sonumber", "ordernumber", "so"}:
+                if any(token in col_norm for token in ["saleorderno", "salesorderno", "saleorder", "salesorder"]):
+                    matches.append(col)
+                    break
+
+            # Cetec-style invoice export: aInvoiceDate_d
+            if key_norm in {"invoicedate", "shipdate", "date"}:
+                if "invoicedate" in col_norm or col_norm.endswith("date") or "date" in col_norm:
+                    matches.append(col)
+                    break
+    return list(dict.fromkeys(matches))
 
 
 def get_first_matching_col(df, keywords):
@@ -690,9 +718,9 @@ def analyze_actuator_seal_service(question, sales_matches):
     )
 
     part_number_col = get_part_number_col(related_lines)
-    so_cols_line = find_cols(line_items, ["sales order", "so number", "order number", "so"])
-    so_cols_inv = find_cols(invoices, ["sales order", "so number", "order number", "so"])
-    date_cols_inv = find_cols(invoices, ["ship date", "shipdate", "invoice date", "date"])
+    line_so_cols = find_cols(related_lines, ["sales order", "so number", "order number", "so"])
+    invoice_so_cols = find_cols(invoices, ["sales order", "so number", "order number", "so"])
+    invoice_date_cols = find_cols(invoices, ["invoice date", "ship date", "shipdate", "date"])
 
     seal_part_col = get_part_number_col(seal_kits)
 
@@ -710,56 +738,84 @@ def analyze_actuator_seal_service(question, sales_matches):
 
     seal_rows = seal_rows.drop_duplicates()
 
-    seal_sos = set()
-
-    for col in so_cols_line:
-        if col in seal_rows.columns:
-            seal_sos.update(seal_rows[col].dropna().map(normalize_so).tolist())
-
-    seal_invoice_rows = pd.DataFrame()
-
-    for col in so_cols_inv:
-        seal_invoice_rows = pd.concat([
-            seal_invoice_rows,
-            invoices[invoices[col].map(normalize_so).isin(seal_sos)],
-        ])
-
-    seal_invoice_rows = seal_invoice_rows.drop_duplicates()
-
-    last_date = None
-
-    for col in date_cols_inv:
-        dates = pd.to_datetime(seal_invoice_rows[col], errors="coerce").dropna()
-        if not dates.empty:
-            candidate = dates.max()
-            if last_date is None or candidate > last_date:
-                last_date = candidate
-
     if seal_rows.empty:
         return (
             "No actuator seal kit purchase found in related history. Recommended service follow-up.",
             seal_rows,
         )
 
+    seal_sos = set()
+    for col in line_so_cols:
+        if col in seal_rows.columns:
+            seal_sos.update(seal_rows[col].dropna().map(normalize_so).tolist())
+
+    # Fallback: if the line item dataframe uses a column name that the generic search missed.
+    if not seal_sos:
+        for col in seal_rows.columns:
+            if "sale" in normalize_col_name(col) and "order" in normalize_col_name(col):
+                seal_sos.update(seal_rows[col].dropna().map(normalize_so).tolist())
+
+    seal_sos = {x for x in seal_sos if x and x.lower() != "nan"}
+
+    seal_invoice_rows = pd.DataFrame()
+    for col in invoice_so_cols:
+        if col in invoices.columns:
+            seal_invoice_rows = pd.concat([
+                seal_invoice_rows,
+                invoices[invoices[col].map(normalize_so).isin(seal_sos)],
+            ])
+
+    seal_invoice_rows = seal_invoice_rows.drop_duplicates()
+
+    last_date = None
+    last_so = None
+    last_invoice = None
+
+    if not seal_invoice_rows.empty:
+        for date_col in invoice_date_cols:
+            temp = seal_invoice_rows.copy()
+            temp["_seal_invoice_date"] = pd.to_datetime(temp[date_col], errors="coerce")
+            temp = temp.dropna(subset=["_seal_invoice_date"])
+            if temp.empty:
+                continue
+            latest_row = temp.sort_values("_seal_invoice_date").iloc[-1]
+            candidate = latest_row["_seal_invoice_date"]
+            if last_date is None or candidate > last_date:
+                last_date = candidate
+                # Pull the displayed SO and invoice number if available.
+                for so_col in invoice_so_cols:
+                    if so_col in latest_row.index:
+                        last_so = normalize_so(latest_row.get(so_col, ""))
+                        break
+                invoice_no_col = get_first_matching_col(invoices, ["invoice no", "invoice number", "invoiceno", "locked"])
+                if invoice_no_col and invoice_no_col in latest_row.index:
+                    last_invoice = normalize_so(latest_row.get(invoice_no_col, ""))
+
     if last_date is None:
+        sos_text = ", ".join(sorted(seal_sos)) if seal_sos else "unknown SOs"
         return (
-            "Actuator seal kit found, but no usable ship/invoice date found. Review manually.",
+            f"Actuator seal kit found on SO(s) {sos_text}, but no matching invoice date was found in INVs_AsOf_05.20.2026.xlsx. Review manually.",
             seal_rows,
         )
 
     years_since = round((today - last_date).days / 365.25, 1)
+    detail_bits = [f"Last actuator seal kit invoice date appears to be {last_date.date()}"]
+    if last_so:
+        detail_bits.append(f"SO {last_so}")
+    if last_invoice:
+        detail_bits.append(f"invoice {last_invoice}")
+    detail = ", ".join(detail_bits)
 
     if years_since >= 5:
         return (
-            f"Last actuator seal kit shipment appears to be {last_date.date()}, about {years_since} years ago. Recommended service follow-up.",
+            f"{detail}, about {years_since} years ago. Recommended service follow-up.",
             seal_rows,
         )
 
     return (
-        f"Last actuator seal kit shipment appears to be {last_date.date()}, about {years_since} years ago.",
+        f"{detail}, about {years_since} years ago.",
         seal_rows,
     )
-
 
 def get_part_history_set(related_lines):
     part_set = set()
@@ -1438,6 +1494,18 @@ SERVICE MESSAGE:
 UPGRADE OPPORTUNITIES:
 {opportunities_to_text(data.get('upgrade_opportunities', []))}
 
+SALES ORDER RECORDS:
+{compact_table_text(data.get('sales_context', pd.DataFrame()), max_rows=25)}
+
+LINE ITEM RECORDS:
+{compact_table_text(data.get('line_context', pd.DataFrame()), max_rows=40)}
+
+INVOICE / SHIP DATE RECORDS:
+{compact_table_text(data.get('invoice_context', pd.DataFrame()), max_rows=40)}
+
+ACTUATOR SEAL KIT MATCHING ROWS:
+{compact_table_text(data.get('seal_rows', pd.DataFrame()), max_rows=25)}
+
 AI SUMMARY:
 {data.get('ai_answer', '')}
 
@@ -1446,8 +1514,31 @@ AGENT TASK:
 """
 
 
+def answer_boat_question(data, user_question):
+    client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {
+                "role": "system",
+                "content": """
+You are an ABT-TRAC boat-history Q&A assistant.
+Answer only from the provided boat records.
+Do not invent dates, invoices, part numbers, installed equipment, prices, or customer names.
+If the question asks about seal kit or seal change timing, use the SERVICE MESSAGE and the matching seal kit rows.
+If a date is not found, say clearly that the date was not found.
+Keep answers concise and practical for a marine sales/service user.
+""",
+            },
+            {"role": "user", "content": build_agent_context(data, user_question)},
+        ],
+        temperature=0.1,
+    )
+    return response.choices[0].message.content
+
+
 def render_ai_agent_tab(data):
-    section_header("AI Agent", "Sales Follow-Up Assistant")
+    section_header("AI Agent", "Boat Q&A and Sales Follow-Up Assistant")
 
     priority, reason = get_agent_priority(data)
     a1, a2, a3 = st.columns(3)
@@ -1469,13 +1560,53 @@ def render_ai_agent_tab(data):
         unsafe_allow_html=True,
     )
 
+    st.markdown("### Ask the AI Agent About This Vessel")
+    st.caption("Ask boat-specific questions using only the sales order, line item, invoice, seal kit, and upgrade records loaded for this vessel.")
+
+    quick_cols = st.columns(3)
+    quick_question = None
+    with quick_cols[0]:
+        if st.button("When was the last seal kit change?", key="quick_last_seal"):
+            quick_question = "When was the last actuator seal kit change or seal kit shipment for this vessel? Include the invoice date and SO if available."
+    with quick_cols[1]:
+        if st.button("What parts were sold?", key="quick_parts_sold"):
+            quick_question = "What parts were sold to this vessel? Summarize the key part numbers, descriptions, and quantities."
+    with quick_cols[2]:
+        if st.button("What upgrades apply?", key="quick_upgrades_apply"):
+            quick_question = "What upgrade opportunities apply to this vessel and what evidence supports them?"
+
+    boat_question = st.text_area(
+        "Freeform vessel question",
+        placeholder="Example: When was the last seal change? What invoice records are linked? What service history do we have?",
+        height=85,
+        key="boat_agent_question",
+    )
+
+    ask_boat_question = st.button("Ask Boat Q&A Agent", key="ask_boat_qa_agent")
+
+    if quick_question or ask_boat_question:
+        final_question = quick_question if quick_question else boat_question.strip()
+        if not final_question:
+            st.warning("Enter a vessel question first.")
+        else:
+            with st.spinner("AI Agent is reviewing this vessel's records..."):
+                answer = answer_boat_question(data, final_question)
+            st.markdown(
+                f"""
+<div class="ai-answer-html">
+{simple_markdown_to_html(answer)}
+</div>
+""",
+                unsafe_allow_html=True,
+            )
+
     st.markdown("### Next Best Actions")
     render_agent_bullets(build_next_best_actions(data))
 
     st.markdown("### Why the Agent Recommends This")
     render_agent_bullets(build_agent_evidence(data))
 
-    st.markdown("### Generate AI Sales Material")
+    st.markdown("### Generate Sales Material")
     agent_task = st.selectbox(
         "Choose what the AI agent should create",
         [
@@ -1510,7 +1641,7 @@ def render_ai_agent_tab(data):
                         "content": """
 You are an ABT-TRAC sales enablement AI agent.
 Use only the provided records and recommendations.
-Do not invent prices, dates, or installed equipment.
+Do not invent prices, dates, customer names, or installed equipment.
 Be concise, practical, and sales-focused.
 When drafting customer-facing material, keep it professional and avoid sounding too aggressive.
 """,
@@ -1527,7 +1658,6 @@ When drafting customer-facing material, keep it professional and avoid sounding 
 """,
                 unsafe_allow_html=True,
             )
-
 
 def infer_ais_region_from_records(data):
     """Prototype AIS-style inference using existing records only; no live AIS API."""
