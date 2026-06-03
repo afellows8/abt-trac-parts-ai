@@ -1521,18 +1521,63 @@ def render_upgrade_cards(upgrade_opportunities):
         st.info("No applicable upgrade opportunities found.")
 
 
+def render_analysis_page_buttons():
+    """Clickable page tabs for the analysis area."""
+    page_map = [
+        ("summary", "AI Summary"),
+        ("vessel", "Vessel Timeline"),
+        ("service", "Service Recommendations"),
+        ("upgrades", "Upgrade Opportunities"),
+        ("records", "Supporting Records"),
+    ]
+
+    active = st.session_state.get("active_panel", "summary")
+    cols = st.columns(len(page_map))
+
+    for col, (panel_key, label) in zip(cols, page_map):
+        with col:
+            button_label = f"✓ {label}" if active == panel_key else label
+            if st.button(button_label, key=f"analysis_tab_{panel_key}", use_container_width=True):
+                st.session_state.active_panel = panel_key
+                st.rerun()
+
+    st.markdown(
+        f'<div class="panel-note">Current page: <b>{dict(page_map).get(st.session_state.get("active_panel", "summary"), "AI Summary")}</b></div>',
+        unsafe_allow_html=True,
+    )
+
+
+def render_supporting_records(data, expanded_sales=True):
+    st.markdown(
+        "".join([f'<span class="pill">{safe_text(term)}</span>' for term in data["extracted_terms"]])
+        if data["extracted_terms"] else '<span class="pill">No search terms</span>',
+        unsafe_allow_html=True,
+    )
+    with st.expander("Sales order records", expanded=expanded_sales):
+        st.dataframe(data["sales_context"], use_container_width=True, hide_index=True)
+    with st.expander("Line item records", expanded=False):
+        st.dataframe(data["line_context"], use_container_width=True, hide_index=True)
+    with st.expander("Invoice / ship date records", expanded=False):
+        st.dataframe(data["invoice_context"], use_container_width=True, hide_index=True)
+    with st.expander("Actuator seal kit rows", expanded=False):
+        st.dataframe(data["seal_rows"], use_container_width=True, hide_index=True)
+
+
 def render_latest_analysis():
     data = st.session_state.latest_analysis
 
     if not data:
         st.markdown(
-            '<div class="panel-note">Run a Marine AI Analysis, then use the top buttons to switch between Vessel History, Service Signals, Upgrade Paths, and Sales Summary.</div>',
+            '<div class="panel-note">Run a Marine AI Analysis, then use the top buttons to jump into Summary, Vessel Timeline, Service Recommendations, Upgrade Opportunities, or Supporting Records.</div>',
             unsafe_allow_html=True,
         )
         return
 
     section_header("Analysis Complete", "Boat Profile")
     render_boat_profile(data.get("boat_profile", {}))
+
+    section_header("Analysis Pages", "Choose What to Review")
+    render_analysis_page_buttons()
 
     section_header("Analysis Complete", "Marine AI Dashboard")
 
@@ -1546,10 +1591,10 @@ def render_latest_analysis():
     with m4:
         metric_card(len(data["upgrade_opportunities"]), "Upgrade Opportunities")
 
-    active = st.session_state.active_panel
+    active = st.session_state.get("active_panel", "summary")
 
     if active == "summary":
-        section_header("Sales Summary", "AI Recommendation")
+        section_header("AI Summary", "Salesperson-Ready Recommendation")
         st.markdown(
             f"""
 <div class="ai-answer-html">
@@ -1560,7 +1605,7 @@ def render_latest_analysis():
         )
 
     elif active == "service":
-        section_header("Service Signals", "Recommended Service")
+        section_header("Service Recommendations", "Recommended Service Follow-Up")
         st.markdown(
             f"""
 <div class="service-card">
@@ -1570,30 +1615,29 @@ def render_latest_analysis():
 """,
             unsafe_allow_html=True,
         )
+        st.markdown("### Service Evidence")
         with st.expander("Actuator seal kit rows", expanded=True):
             st.dataframe(data["seal_rows"], use_container_width=True, hide_index=True)
-
-    elif active == "upgrades":
-        section_header("Upgrade Paths", "Applicable Upgrades")
-        render_upgrade_cards(data["upgrade_opportunities"])
-
-    elif active == "vessel":
-        section_header("Vessel History", "Vessel Timeline")
-        render_vessel_timeline(data.get("vessel_timeline", []))
-
-        section_header("Vessel History", "Supporting Records")
-        st.markdown(
-            "".join([f'<span class="pill">{safe_text(term)}</span>' for term in data["extracted_terms"]])
-            if data["extracted_terms"] else '<span class="pill">No search terms</span>',
-            unsafe_allow_html=True,
-        )
-        with st.expander("Sales order records", expanded=True):
-            st.dataframe(data["sales_context"], use_container_width=True, hide_index=True)
-        with st.expander("Line item records", expanded=False):
-            st.dataframe(data["line_context"], use_container_width=True, hide_index=True)
-        with st.expander("Invoice / ship date records", expanded=False):
+        with st.expander("Related invoice / ship date records", expanded=False):
             st.dataframe(data["invoice_context"], use_container_width=True, hide_index=True)
 
+    elif active == "upgrades":
+        section_header("Upgrade Opportunities", "Applicable Upgrade Paths and Literature")
+        render_upgrade_cards(data["upgrade_opportunities"])
+        st.markdown("### Upgrade Evidence")
+        with st.expander("Relevant line item history", expanded=False):
+            st.dataframe(data["line_context"], use_container_width=True, hide_index=True)
+
+    elif active == "vessel":
+        section_header("Vessel Timeline", "Service and Sales History")
+        render_vessel_timeline(data.get("vessel_timeline", []))
+        st.markdown("### Vessel History Records")
+        with st.expander("Sales order records", expanded=False):
+            st.dataframe(data["sales_context"], use_container_width=True, hide_index=True)
+
+    elif active == "records":
+        section_header("Supporting Records", "Evidence Used by the AI")
+        render_supporting_records(data, expanded_sales=True)
 
 st.markdown('<div id="analysis-content-anchor"></div>', unsafe_allow_html=True)
 
