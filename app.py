@@ -37,7 +37,7 @@ st.markdown(
 
 [data-testid="stAppViewContainer"] {{
     background:
-        linear-gradient(120deg, rgba(0,0,0,0.10), rgba(0,0,0,0.10)),
+        linear-gradient(120deg, rgba(4,20,36,0.18), rgba(4,20,36,0.12)),
         url("{BACKGROUND_IMAGE_URL}");
     background-size: cover;
     background-position: center;
@@ -505,66 +505,61 @@ label[for*="upgrade"] {
 }
 
 
-/* Clean demo layout updates */
-.search-help,
-.search-help *,
-.search-help b {
+/* Clean final UI: readable labels, no empty white bars, Streamlit tab styling */
+.search-help, .search-help *, .search-help b {{
     color: #FFFFFF !important;
-    opacity: 1 !important;
-}
+}}
 
 div[data-testid="stSelectbox"] label,
 div[data-testid="stSelectbox"] label *,
 .stSelectbox label,
-.stSelectbox label * {
+.stSelectbox label * {{
     color: #FFFFFF !important;
     font-weight: 900 !important;
     font-size: 1rem !important;
     text-shadow: 0 2px 6px rgba(0,0,0,0.85) !important;
-}
+}}
 
-/* Real tabs styling */
-button[data-baseweb="tab"] {
-    background: linear-gradient(135deg, #0D4F7C, #102B49) !important;
-    border-radius: 14px !important;
-    margin-right: 10px !important;
-    padding: 10px 18px !important;
-    color: white !important;
-    font-weight: 850 !important;
-}
-button[data-baseweb="tab"] * {
-    color: white !important;
-}
-button[data-baseweb="tab"][aria-selected="true"] {
-    background: linear-gradient(135deg, #2D8AB8, #0D4F7C) !important;
-    box-shadow: 0 10px 26px rgba(7,28,49,0.30) !important;
-}
-
-/* Hide old nav/card remnants if any remain */
-.nav-caption,
-.capability-card {
-    display: none !important;
-}
-
-.search-card {
-    background: rgba(255,255,255,0.96) !important;
-}
-
-.search-help {
+div[data-testid="stButton"] button,
+div[data-testid="stButton"] button *,
+.stButton button,
+.stButton button *,
+.stButton button p,
+.stButton button span {{
     color: #FFFFFF !important;
-}
+    opacity: 1 !important;
+}}
 
+.nav-caption {{
+    display: none !important;
+}}
 .dashboard-card:empty,
 .search-card:empty,
 .generated-output-card:empty,
-.record-card:empty {
+.record-card:empty {{
     display: none !important;
     height: 0 !important;
     padding: 0 !important;
     margin: 0 !important;
     border: 0 !important;
     box-shadow: none !important;
-}
+}}
+
+button[data-baseweb="tab"] {{
+    background: linear-gradient(135deg, #0D4F7C, #102B49) !important;
+    border-radius: 14px !important;
+    margin-right: 8px !important;
+    padding: 10px 16px !important;
+    color: white !important;
+    font-weight: 900 !important;
+}}
+button[data-baseweb="tab"] * {{
+    color: white !important;
+    font-weight: 900 !important;
+}}
+button[data-baseweb="tab"][aria-selected="true"] {{
+    outline: 3px solid rgba(199,163,73,0.75) !important;
+}}
 
 </style>
 """,
@@ -1033,19 +1028,19 @@ def get_first_value(df, possible_cols):
     return "Not found"
 
 
-def looks_like_hull_or_model(value):
-    value = str(value).strip().upper()
-    if not value or value in {"NAN", "NONE", "NOT FOUND"}:
+def looks_like_hull_or_project(value):
+    text = str(value).strip().upper()
+    if not text or text == "NAN":
         return True
-
-    # Common hull/model patterns such as 65-042, 75-10, F65-042, FLEMING 75-10
-    if re.fullmatch(r"[A-Z]?\d{2,3}[- ]\d{1,4}", value):
+    if re.fullmatch(r"[A-Z]?\d{2,3}[- ]?\d{1,4}", text):
         return True
-    if re.search(r"\d{2,3}[- ]\d{1,4}", value):
+    if re.search(r"\b\d{2,3}[- ]\d{1,4}\b", text):
         return True
-    if re.fullmatch(r"\d+", value):
+    if re.fullmatch(r"\d+", text):
         return True
-    if value.startswith("FLEMING ") and re.search(r"\d", value):
+    if text.startswith("FLEMING ") and re.search(r"\d", text):
+        return True
+    if text.startswith("HULL") or "HULL" in text:
         return True
     return False
 
@@ -1055,90 +1050,76 @@ def get_known_vessel_names(sales_context):
         "Boat Name", "Vessel Name", "Yacht Name", "Ship Name", "Name",
         "Order Name", "Hull Project"
     ]
-
     names = []
     seen = set()
-
     for col in name_cols:
         if col in sales_context.columns:
-            vals = sales_context[col].dropna().astype(str).str.strip()
-            for val in vals:
-                clean = val.strip()
-                if not clean or clean.lower() == "nan":
+            for value in sales_context[col].dropna().astype(str).str.strip():
+                if not value or value.lower() == "nan":
                     continue
-                if looks_like_hull_or_model(clean):
+                if looks_like_hull_or_project(value):
                     continue
-                key = clean.upper()
+                key = value.upper()
                 if key not in seen:
-                    names.append(clean)
+                    names.append(value)
                     seen.add(key)
-
     if not names:
         return "No vessel names found"
-
     return ", ".join(names[:4])
-
-
-def get_opportunity_level(upgrade_opportunities, service_message):
-    service_count = 1 if "recommended" in str(service_message).lower() else 0
-    upgrade_count = len(upgrade_opportunities)
-
-    if service_count > 0 or upgrade_count >= 2:
-        return "High"
-    if upgrade_count == 1:
-        return "Medium"
-    return "Low"
 
 
 def build_boat_profile(sales_context, line_context, invoice_context, upgrade_opportunities, service_message):
     original_so_col = get_first_matching_col(sales_orders, ["original so", "orig so", "original sales order", "original order"])
     sales_order_col = get_first_matching_col(sales_orders, ["sales order", "so number", "order number", "so"])
 
-    # Keep the primary boat/hull field for identification, but separate actual vessel names below.
     boat_name = get_first_value(sales_context, ["Hull Project", "Order Name", "Boat Name", "Vessel Name", "Hull Number"])
-    known_names = get_known_vessel_names(sales_context)
     original_so = get_first_value(sales_context, [original_so_col] if original_so_col else [])
 
     if original_so == "Not found":
         original_so = get_first_value(sales_context, [sales_order_col] if sales_order_col else [])
 
     service_count = 1 if "recommended" in str(service_message).lower() else 0
-    opportunity_level = get_opportunity_level(upgrade_opportunities, service_message)
+    upgrade_count = len(upgrade_opportunities)
+    if service_count > 0 or upgrade_count >= 2:
+        opportunity_level = "High"
+    elif upgrade_count == 1:
+        opportunity_level = "Medium"
+    else:
+        opportunity_level = "Low"
 
     return {
         "Boat / Hull": boat_name,
-        "Known Vessel Names": known_names,
         "Original Sales Order": original_so,
         "Related Sales Orders": len(sales_context),
         "Line Items": len(line_context),
+        "Known Vessel Names": get_known_vessel_names(sales_context),
         "Service Signals": service_count,
-        "Upgrade Opportunities": len(upgrade_opportunities),
+        "Upgrade Opportunities": upgrade_count,
         "Opportunity Level": opportunity_level,
     }
 
 
 def render_boat_profile(profile):
     boat = safe_text(profile.get("Boat / Hull", "Not found"))
-    known_names = safe_text(profile.get("Known Vessel Names", "No vessel names found"))
     original_so = safe_text(profile.get("Original Sales Order", "Not found"))
     related_sos = safe_text(profile.get("Related Sales Orders", 0))
     upgrade_opps = safe_text(profile.get("Upgrade Opportunities", 0))
     line_items_count = safe_text(profile.get("Line Items", 0))
+    known_names = safe_text(profile.get("Known Vessel Names", "No vessel names found"))
     service_signals = safe_text(profile.get("Service Signals", 0))
-    opportunity_level = safe_text(profile.get("Opportunity Level", "Unknown"))
     st.markdown(
         f"""
 <div class="profile-grid">
   <div class="profile-tile"><div class="profile-label">Boat / Hull</div><div class="profile-value">{boat}</div></div>
-  <div class="profile-tile"><div class="profile-label">Known Vessel Names</div><div class="profile-value">{known_names}</div></div>
   <div class="profile-tile"><div class="profile-label">Original SO</div><div class="profile-value">{original_so}</div></div>
   <div class="profile-tile"><div class="profile-label">Related SOs</div><div class="profile-value">{related_sos}</div></div>
+  <div class="profile-tile"><div class="profile-label">Upgrade Opps</div><div class="profile-value">{upgrade_opps}</div></div>
 </div>
 <div class="profile-grid">
   <div class="profile-tile"><div class="profile-label">Line Items</div><div class="profile-value">{line_items_count}</div></div>
+  <div class="profile-tile"><div class="profile-label">Known Vessel Names</div><div class="profile-value">{known_names}</div></div>
   <div class="profile-tile"><div class="profile-label">Service Signals</div><div class="profile-value">{service_signals}</div></div>
-  <div class="profile-tile"><div class="profile-label">Upgrade Opps</div><div class="profile-value">{upgrade_opps}</div></div>
-  <div class="profile-tile"><div class="profile-label">Opportunity Level</div><div class="profile-value">{opportunity_level}</div></div>
+  <div class="profile-tile"><div class="profile-label">Opportunity Level</div><div class="profile-value">{safe_text(profile.get("Opportunity Level", "Unknown"))}</div></div>
 </div>
 """,
         unsafe_allow_html=True,
@@ -1351,8 +1332,6 @@ with hero_right:
     except Exception:
         st.caption("Inov8v Marine")
 
-# Search first so users do not need to scroll before running analysis
-st.markdown('<div class="search-card">', unsafe_allow_html=True)
 st.markdown('<div class="search-label">Search Vessel History, Service Opportunities, and Upgrade Recommendations</div>', unsafe_allow_html=True)
 st.markdown('<div class="search-help">Ask ABT AI about a <b>Sales Order Number</b>, <b>Boat Name</b>, or <b>Hull Number</b>.</div>', unsafe_allow_html=True)
 
@@ -1365,9 +1344,7 @@ with st.form("ask_ai_form"):
     )
     ask_clicked = st.form_submit_button("Run Marine AI Analysis")
 
-st.markdown('</div>', unsafe_allow_html=True)
 
-# Customer opportunity dashboard remains available, but it no longer pushes the main boat search down.
 section_header("Customer Opportunity Dashboard", "Find Eligible Original Sales Orders by Upgrade Type")
 upgrade_names = [str(x).strip() for x in upgrades.iloc[:, 0].dropna().tolist() if str(x).strip()]
 upgrade_filter = st.selectbox("Upgrade type", ["All Upgrade Types"] + upgrade_names, index=0)
@@ -1400,6 +1377,10 @@ if scan_clicked or "opportunity_dashboard" in st.session_state:
             file_name="abt_trac_upgrade_opportunities.csv",
             mime="text/csv",
         )
+
+
+
+
 
 
 # -----------------------------------------------------------------------------
@@ -1560,35 +1541,37 @@ def render_latest_analysis():
 
     if not data:
         st.markdown(
-            '<div class="panel-note">Run a Marine AI Analysis above, then use the tabs to review the AI Summary, Vessel History, Service Signals, Upgrade Paths, and Supporting Records.</div>',
+            '<div class="panel-note">Run a Marine AI Analysis to load the Boat Profile, AI Summary, Vessel History, Service Signals, and Upgrade Paths.</div>',
             unsafe_allow_html=True,
         )
         return
 
-    # Boat Profile appears immediately after the main search analysis area.
     section_header("Analysis Complete", "Boat Profile")
     render_boat_profile(data.get("boat_profile", {}))
 
     section_header("Analysis Complete", "Marine AI Dashboard")
+
     m1, m2, m3, m4 = st.columns(4)
     with m1:
         metric_card(len(data["sales_context"]), "Sales Orders")
     with m2:
         metric_card(len(data["line_context"]), "Line Items")
     with m3:
-        metric_card(data.get("boat_profile", {}).get("Service Signals", 0), "Service Signals")
+        metric_card(len(data["invoice_context"]), "Invoice Records")
     with m4:
         metric_card(len(data["upgrade_opportunities"]), "Upgrade Opportunities")
 
-    tab_summary, tab_vessel, tab_service, tab_upgrades, tab_records = st.tabs([
+    summary_tab, vessel_tab, service_tab, upgrade_tab, records_tab, agent_tab = st.tabs([
         "AI Summary",
         "⚓ Vessel History",
         "🔧 Service Signals",
         "↗ Upgrade Paths",
         "Supporting Records",
+        "AI Agent",
     ])
 
-    with tab_summary:
+    with summary_tab:
+        section_header("Sales Summary", "AI Recommendation")
         st.markdown(
             f"""
 <div class="ai-answer-html">
@@ -1598,11 +1581,11 @@ def render_latest_analysis():
             unsafe_allow_html=True,
         )
 
-    with tab_vessel:
+    with vessel_tab:
         section_header("Vessel History", "Vessel Timeline")
         render_vessel_timeline(data.get("vessel_timeline", []))
 
-    with tab_service:
+    with service_tab:
         section_header("Service Signals", "Recommended Service")
         st.markdown(
             f"""
@@ -1616,11 +1599,11 @@ def render_latest_analysis():
         with st.expander("Actuator seal kit rows", expanded=True):
             st.dataframe(data["seal_rows"], use_container_width=True, hide_index=True)
 
-    with tab_upgrades:
+    with upgrade_tab:
         section_header("Upgrade Paths", "Applicable Upgrades")
         render_upgrade_cards(data["upgrade_opportunities"])
 
-    with tab_records:
+    with records_tab:
         section_header("Supporting Records", "Evidence Used by the AI")
         st.markdown(
             "".join([f'<span class="pill">{safe_text(term)}</span>' for term in data["extracted_terms"]])
@@ -1634,6 +1617,54 @@ def render_latest_analysis():
         with st.expander("Invoice / ship date records", expanded=False):
             st.dataframe(data["invoice_context"], use_container_width=True, hide_index=True)
 
+    with agent_tab:
+        section_header("AI Agent", "Sales Follow-Up Assistant")
+        agent_prompt = st.text_area(
+            "Ask the agent to draft a sales follow-up, call plan, or upgrade explanation.",
+            placeholder="Example: Draft a short follow-up email explaining the recommended upgrade opportunities for this vessel.",
+            height=100,
+        )
+        if st.button("Run AI Agent", key="run_ai_agent"):
+            if not agent_prompt.strip():
+                st.warning("Enter an agent instruction first.")
+            else:
+                with st.spinner("Generating sales follow-up guidance..."):
+                    agent_context = f"""
+CURRENT BOAT PROFILE:
+{data.get('boat_profile', {})}
+
+SERVICE MESSAGE:
+{data.get('service_message', '')}
+
+UPGRADE OPPORTUNITIES:
+{opportunities_to_text(data.get('upgrade_opportunities', []))}
+
+AI SUMMARY:
+{data.get('ai_answer', '')}
+
+USER REQUEST:
+{agent_prompt}
+"""
+                    client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+                    agent_response = client.chat.completions.create(
+                        model="gpt-4o-mini",
+                        messages=[
+                            {
+                                "role": "system",
+                                "content": "You are an ABT-TRAC sales enablement AI agent. Use only the provided context. Be concise, practical, and sales-focused.",
+                            },
+                            {"role": "user", "content": agent_context},
+                        ],
+                        temperature=0.25,
+                    )
+                    st.markdown(
+                        f"""
+<div class="ai-answer-html">
+{simple_markdown_to_html(agent_response.choices[0].message.content)}
+</div>
+""",
+                        unsafe_allow_html=True,
+                    )
 
 
 render_latest_analysis()
