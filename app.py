@@ -463,26 +463,26 @@ div[data-testid="stExpander"] * {{
 /* Final demo layout/readability overrides */
 .search-help,
 .search-help *,
-.search-help b {
+.search-help b {{
     color: #FFFFFF !important;
-}
+}}
 
 /* Make Streamlit tabs look like top navigation */
-div[data-testid="stTabs"] button {
+div[data-testid="stTabs"] button {{
     background: linear-gradient(135deg, #0D4F7C, #102B49) !important;
     color: #FFFFFF !important;
     border-radius: 16px 16px 0 0 !important;
     font-weight: 900 !important;
     padding: 12px 18px !important;
-}
+}}
 
-div[data-testid="stTabs"] button * {
+div[data-testid="stTabs"] button * {{
     color: #FFFFFF !important;
-}
+}}
 
 /* Make dropdown labels visible on the yacht background */
 div[data-testid="stSelectbox"] label,
-.stSelectbox label {
+.stSelectbox label {{
     color: #FFFFFF !important;
     background: rgba(16,43,73,0.92) !important;
     padding: 7px 12px !important;
@@ -490,15 +490,15 @@ div[data-testid="stSelectbox"] label,
     font-weight: 900 !important;
     display: inline-block !important;
     margin-bottom: 8px !important;
-}
+}}
 
 /* Make dark blue Streamlit buttons readable */
 .stButton button,
 .stButton button *,
 .stLinkButton a,
-.stLinkButton a * {
+.stLinkButton a * {{
     color: #FFFFFF !important;
-}
+}}
 
 </style>
 """,
