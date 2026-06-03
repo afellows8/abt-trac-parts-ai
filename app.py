@@ -31,13 +31,13 @@ st.markdown(
     --abt-gold: #C7A349;
     --abt-ink: #17263B;
     --abt-muted: #627086;
-    --abt-card: rgba(255,255,255,0.94);
+    --abt-card: rgba(255,255,255,0.97);
     --abt-border: rgba(16,43,73,0.13);
 }}
 
 [data-testid="stAppViewContainer"] {{
     background:
-        linear-gradient(120deg, rgba(8,25,43,0.84) 0%, rgba(13,79,124,0.60) 34%, rgba(255,255,255,0.82) 72%),
+        linear-gradient(120deg, rgba(8,25,43,0.62) 0%, rgba(13,79,124,0.34) 34%, rgba(245,248,252,0.93) 72%),
         url("{BACKGROUND_IMAGE_URL}");
     background-size: cover;
     background-position: center;
@@ -64,7 +64,7 @@ p, li, div {{
 }}
 
 .hero-shell {{
-    background: linear-gradient(135deg, rgba(255,255,255,0.97), rgba(245,250,253,0.90));
+    background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(245,250,253,0.94));
     border: 1px solid rgba(255,255,255,0.75);
     border-radius: 28px;
     padding: 28px 30px 24px 30px;
@@ -90,7 +90,7 @@ p, li, div {{
 }}
 
 .hero-subtitle {{
-    color: var(--abt-muted);
+    color: #233B58;
     font-size: 1.08rem;
     line-height: 1.55;
     max-width: 720px;
@@ -107,6 +107,7 @@ p, li, div {{
 .capability-card {{
     padding: 18px 18px 16px 18px;
     min-height: 142px;
+    background: rgba(255,255,255,0.98);
 }}
 
 .capability-icon {{
@@ -131,7 +132,7 @@ p, li, div {{
 }}
 
 .capability-copy {{
-    color: var(--abt-muted);
+    color: #233B58;
     font-size: 0.92rem;
     line-height: 1.42;
 }}
@@ -139,10 +140,11 @@ p, li, div {{
 .search-card {{
     padding: 22px 24px 24px 24px;
     margin-top: 18px;
+    background: rgba(255,255,255,0.97);
 }}
 
 .search-label {{
-    color: #102B49;
+    color: #081A2F;
     font-weight: 900;
     font-size: 1.45rem;
     margin-bottom: 8px;
@@ -196,27 +198,27 @@ p, li, div {{
 }}
 
 .nav-caption {{
-    background: rgba(255,255,255,0.92);
+    background: rgba(255,255,255,0.98);
     border: 1px solid rgba(16,43,73,0.12);
     border-radius: 0 0 18px 18px;
     padding: 8px 12px 12px 12px;
     margin-top: -8px;
     margin-bottom: 8px;
     min-height: 54px;
-    color: var(--abt-muted);
-    font-size: 0.86rem;
+    color: #233B58;
+    font-size: 0.90rem;
     line-height: 1.32;
     box-shadow: 0 14px 34px rgba(7,28,49,0.10);
 }}
 
 .panel-note {{
-    background: rgba(255,255,255,0.92);
+    background: rgba(255,255,255,0.98);
     border: 1px solid rgba(16,43,73,0.12);
     border-radius: 18px;
     padding: 16px 18px;
     margin-top: 12px;
-    color: var(--abt-muted);
-    font-weight: 700;
+    color: #102B49;
+    font-weight: 800;
 }}
 
 .metric-card {{
@@ -233,27 +235,38 @@ p, li, div {{
 
 .metric-label {{
     margin-top: 6px;
-    color: var(--abt-muted);
-    font-weight: 700;
+    color: #102B49;
+    font-weight: 800;
     font-size: 0.88rem;
     text-transform: uppercase;
     letter-spacing: 0.06em;
 }}
 
 .section-kicker {{
-    color: var(--abt-blue);
+    color: #0D4F7C;
+    background: rgba(255,255,255,0.97);
+    border: 1px solid rgba(16,43,73,0.12);
+    border-bottom: 0;
+    border-radius: 18px 18px 0 0;
     text-transform: uppercase;
     letter-spacing: 0.12em;
     font-size: 0.78rem;
-    font-weight: 850;
+    font-weight: 900;
     margin-top: 26px;
+    padding: 14px 18px 4px 18px;
 }}
 
 .section-title {{
-    color: var(--abt-navy);
+    color: #081A2F;
+    background: rgba(255,255,255,0.97);
+    border: 1px solid rgba(16,43,73,0.12);
+    border-top: 0;
+    border-radius: 0 0 18px 18px;
     font-size: 1.55rem;
     font-weight: 900;
     margin-bottom: 10px;
+    padding: 0 18px 14px 18px;
+    box-shadow: 0 12px 32px rgba(7,28,49,0.10);
 }}
 
 .answer-card {{
@@ -308,7 +321,7 @@ p, li, div {{
 }}
 
 .small-muted {{
-    color: var(--abt-muted);
+    color: #233B58;
     font-size: 0.88rem;
 }}
 
@@ -324,10 +337,13 @@ div[data-testid="stExpander"] {{
 }}
 
 .footer-note {{
-    color: rgba(255,255,255,0.88);
+    color: #102B49;
+    background: rgba(255,255,255,0.86);
+    border-radius: 14px;
     font-size: 0.86rem;
     text-align: center;
-    padding: 14px 0 0 0;
+    padding: 12px;
+    margin-top: 16px;
 }}
 
 .profile-grid {{
@@ -337,14 +353,14 @@ div[data-testid="stExpander"] {{
     margin-bottom: 12px;
 }}
 .profile-tile {{
-    background: rgba(255,255,255,0.94);
+    background: rgba(255,255,255,0.98);
     border: 1px solid rgba(16,43,73,0.12);
     border-radius: 18px;
     padding: 14px 16px;
     box-shadow: 0 12px 32px rgba(7,28,49,0.10);
 }}
 .profile-label {{
-    color: var(--abt-muted);
+    color: #233B58;
     font-size: 0.78rem;
     font-weight: 850;
     text-transform: uppercase;
@@ -357,7 +373,7 @@ div[data-testid="stExpander"] {{
     margin-top: 4px;
 }}
 .timeline-box {{
-    background: rgba(255,255,255,0.94);
+    background: rgba(255,255,255,0.98);
     border: 1px solid rgba(16,43,73,0.12);
     border-radius: 20px;
     padding: 16px 18px;
@@ -370,7 +386,7 @@ div[data-testid="stExpander"] {{
     margin-left: 5px;
 }}
 .timeline-date {{
-    color: var(--abt-blue);
+    color: #102B49;
     font-weight: 900;
     font-size: 0.9rem;
 }}
@@ -379,16 +395,24 @@ div[data-testid="stExpander"] {{
     font-weight: 900;
 }}
 .timeline-copy {{
-    color: var(--abt-muted);
+    color: #233B58;
     font-size: 0.9rem;
 }}
 .dashboard-card {{
-    background: rgba(255,255,255,0.94);
+    background: rgba(255,255,255,0.98);
     border: 1px solid rgba(16,43,73,0.12);
     border-radius: 22px;
     padding: 18px 20px;
     box-shadow: 0 16px 48px rgba(7,28,49,0.13);
     margin: 18px 0;
+}}
+
+/* Readability hardening for demo screens */
+.stMarkdown, .stMarkdown p, .stMarkdown li, .stCaptionContainer, label, .stSelectbox label, .stTextInput label {{
+    color: #081A2F !important;
+}}
+div[data-testid="stMarkdownContainer"] p {{
+    color: #102B49;
 }}
 
 </style>
