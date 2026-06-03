@@ -37,7 +37,7 @@ st.markdown(
 
 [data-testid="stAppViewContainer"] {{
     background:
-        linear-gradient(120deg, rgba(246,250,253,0.90), rgba(246,250,253,0.90)),
+        linear-gradient(120deg, rgba(0,0,0,0.10), rgba(0,0,0,0.10)),
         url("{BACKGROUND_IMAGE_URL}");
     background-size: cover;
     background-position: center;
@@ -152,7 +152,7 @@ p, li, div {{
 }}
 
 .search-help {{
-    color: #FFFFFF !important;
+    color: #FFFFFF;
     background: linear-gradient(135deg, #0D4F7C, #102B49);
     font-size: 1.14rem;
     font-weight: 900;
@@ -160,12 +160,6 @@ p, li, div {{
     padding: 12px 16px;
     border-radius: 14px;
     box-shadow: 0 10px 26px rgba(7,28,49,0.18);
-}}
-
-.search-help,
-.search-help *,
-.search-help b {{
-    color: #FFFFFF !important;
 }}
 
 .stTextArea textarea {{
@@ -463,6 +457,15 @@ div[data-testid="stExpander"] * {{
 }}
 [data-testid="stDataFrame"] {{
     background: rgba(255,255,255,0.99) !important;
+}}
+
+
+/* Final button/banner fixes */
+.search-help, .search-help *, .search-help b {{
+    color: #FFFFFF !important;
+}}
+.stButton button, .stButton button * {{
+    color: #FFFFFF !important;
 }}
 
 </style>
