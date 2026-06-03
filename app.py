@@ -500,6 +500,41 @@ div[data-testid="stSelectbox"] label,
     color: #FFFFFF !important;
 }}
 
+
+/* AI Agent cards */
+.agent-card {
+    background: rgba(255,255,255,0.985);
+    border: 1px solid rgba(16,43,73,0.14);
+    border-radius: 22px;
+    box-shadow: 0 16px 48px rgba(7,28,49,0.14);
+    padding: 22px 26px;
+    border-top: 5px solid #C7A349;
+    color: #071A2F !important;
+}
+.agent-card, .agent-card * {
+    color: #071A2F !important;
+}
+.agent-step {
+    background: rgba(13,79,124,0.08);
+    border-left: 5px solid #0D4F7C;
+    border-radius: 14px;
+    padding: 12px 14px;
+    margin: 10px 0;
+    color: #071A2F !important;
+}
+.agent-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #0D4F7C, #102B49);
+    color: #FFFFFF !important;
+    padding: 7px 12px;
+    border-radius: 999px;
+    font-weight: 900;
+    margin: 4px 6px 8px 0;
+}
+.agent-badge * {
+    color: #FFFFFF !important;
+}
+
 </style>
 """,
     unsafe_allow_html=True,
@@ -957,6 +992,110 @@ def opportunities_to_text(opportunities):
     return "\n".join(lines)
 
 
+
+
+def build_agent_brief(boat_profile, service_message, upgrade_opportunities, vessel_timeline):
+    # Creates a salesperson-ready AI agent plan from the analysis results.
+    upgrade_count = len(upgrade_opportunities)
+    service_recommended = "recommended" in str(service_message).lower()
+
+    if service_recommended and upgrade_count >= 1:
+        priority = "High"
+        next_action = "Contact customer with a combined service + upgrade review."
+    elif upgrade_count >= 1:
+        priority = "Medium"
+        next_action = "Contact customer with upgrade literature and ask whether they want a modernization review."
+    elif service_recommended:
+        priority = "Medium"
+        next_action = "Contact customer about service follow-up."
+    else:
+        priority = "Low"
+        next_action = "No immediate sales action. Keep as reference history."
+
+    upgrade_names = [opp.get("Upgrade", "Upgrade Opportunity") for opp in upgrade_opportunities]
+    literature = []
+    for opp in upgrade_opportunities:
+        for name, url in opp.get("Literature", []):
+            literature.append(name)
+
+    timeline_count = len(vessel_timeline or [])
+    boat_name = boat_profile.get("Boat / Hull", "this vessel") if boat_profile else "this vessel"
+    original_so = boat_profile.get("Original Sales Order", "Not found") if boat_profile else "Not found"
+
+    tasks = []
+    if service_recommended:
+        tasks.append("Review actuator seal kit history and confirm whether service is due.")
+    if upgrade_names:
+        tasks.append("Send applicable upgrade literature to the customer or dealer.")
+        tasks.append("Check whether the customer is interested in modernization or controls/electric upgrade options.")
+    tasks.append("Confirm current vessel ownership, location, and best service contact before quoting.")
+
+    questions = [
+        "Is the vessel still operating with the original equipment configuration?",
+        "Has any service or upgrade work been completed outside ABT-TRAC records?",
+        "Is the customer planning a yard period, refit, or seasonal service window?",
+    ]
+
+    return {
+        "Priority": priority,
+        "Next Action": next_action,
+        "Boat": boat_name,
+        "Original Sales Order": original_so,
+        "Upgrade Names": upgrade_names,
+        "Literature": literature,
+        "Timeline Events": timeline_count,
+        "Tasks": tasks,
+        "Questions": questions,
+    }
+
+
+def render_agent_brief(agent_brief):
+    if not agent_brief:
+        st.info("Run a Marine AI Analysis first to generate an agent plan.")
+        return
+
+    priority = safe_text(agent_brief.get("Priority", "Unknown"))
+    next_action = safe_text(agent_brief.get("Next Action", "No action generated."))
+    boat = safe_text(agent_brief.get("Boat", "Not found"))
+    original_so = safe_text(agent_brief.get("Original Sales Order", "Not found"))
+
+    upgrade_names = agent_brief.get("Upgrade Names", []) or []
+    literature = agent_brief.get("Literature", []) or []
+    tasks = agent_brief.get("Tasks", []) or []
+    questions = agent_brief.get("Questions", []) or []
+
+    upgrade_badges = "".join([f'<span class="agent-badge">{safe_text(x)}</span>' for x in upgrade_names]) or '<span class="agent-badge">No upgrade opportunity</span>'
+    task_html = "".join([f'<div class="agent-step">{safe_text(x)}</div>' for x in tasks])
+    question_html = "".join([f'<li>{safe_text(x)}</li>' for x in questions])
+    literature_html = "".join([f'<li>{safe_text(x)}</li>' for x in literature]) or "<li>No literature listed.</li>"
+
+    html_block = (
+        f'<div class="agent-card">'
+        f'<h3>AI Sales Agent</h3>'
+        f'<p><strong>Priority:</strong> {priority}</p>'
+        f'<p><strong>Vessel:</strong> {boat}</p>'
+        f'<p><strong>Original Sales Order:</strong> {original_so}</p>'
+        f'<p><strong>Recommended next action:</strong> {next_action}</p>'
+        f'<div>{upgrade_badges}</div>'
+        f'<h4>Agent Task List</h4>{task_html}'
+        f'<h4>Customer Questions to Ask</h4><ul>{question_html}</ul>'
+        f'<h4>Literature to Prepare</h4><ul>{literature_html}</ul>'
+        f'</div>'
+    )
+    st.markdown(html_block, unsafe_allow_html=True)
+
+    st.markdown("#### Suggested follow-up note")
+    note = (
+        f"Hi [Customer/Dealer],\n\n"
+        f"I reviewed our ABT-TRAC history for {boat} / Original SO {original_so}. "
+        f"Based on the records, there may be a {priority.lower()} opportunity for follow-up.\n\n"
+        f"Recommended next step: {next_action}\n\n"
+        f"Would you like us to review the current vessel configuration and confirm whether any service or upgrade work should be planned during the next yard period?\n\n"
+        f"Best,\nABT-TRAC Team"
+    )
+    st.text_area("Copy-ready note", note, height=190)
+
+
 def get_first_value(df, possible_cols):
     for col in possible_cols:
         if col and col in df.columns:
@@ -1355,6 +1494,13 @@ Be concise and useful for a marine parts salesperson.
                 upgrade_opportunities,
             )
 
+            agent_brief = build_agent_brief(
+                boat_profile,
+                service_message,
+                upgrade_opportunities,
+                vessel_timeline,
+            )
+
             st.session_state.latest_analysis = {
                 "ai_answer": ai_answer,
                 "extracted_terms": extracted_terms,
@@ -1366,6 +1512,7 @@ Be concise and useful for a marine parts salesperson.
                 "upgrade_opportunities": upgrade_opportunities,
                 "boat_profile": boat_profile,
                 "vessel_timeline": vessel_timeline,
+                "agent_brief": agent_brief,
             }
 
 
@@ -1423,13 +1570,18 @@ def render_latest_analysis():
     with m4:
         metric_card(len(data["upgrade_opportunities"]), "Upgrade Opportunities")
 
-    summary_tab, vessel_tab, service_tab, upgrades_tab, records_tab = st.tabs([
+    agent_tab, summary_tab, vessel_tab, service_tab, upgrades_tab, records_tab = st.tabs([
+        "🤖 AI Agent",
         "AI Sales Summary",
         "⚓ Vessel History",
         "🔧 Service Signals",
         "↗ Upgrade Paths",
         "Supporting Records",
     ])
+
+    with agent_tab:
+        section_header("AI Agent", "Next Best Action")
+        render_agent_brief(data.get("agent_brief"))
 
     with summary_tab:
         st.markdown(
