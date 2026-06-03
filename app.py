@@ -37,7 +37,7 @@ st.markdown(
 
 [data-testid="stAppViewContainer"] {{
     background:
-        linear-gradient(120deg, rgba(0,18,36,0.28), rgba(0,18,36,0.10)),
+        linear-gradient(120deg, rgba(246,250,253,0.90), rgba(246,250,253,0.90)),
         url("{BACKGROUND_IMAGE_URL}");
     background-size: cover;
     background-position: center;
@@ -152,7 +152,7 @@ p, li, div {{
 }}
 
 .search-help {{
-    color: #FFFFFF;
+    color: #FFFFFF !important;
     background: linear-gradient(135deg, #0D4F7C, #102B49);
     font-size: 1.14rem;
     font-weight: 900;
@@ -160,6 +160,12 @@ p, li, div {{
     padding: 12px 16px;
     border-radius: 14px;
     box-shadow: 0 10px 26px rgba(7,28,49,0.18);
+}}
+
+.search-help,
+.search-help *,
+.search-help b {{
+    color: #FFFFFF !important;
 }}
 
 .stTextArea textarea {{
@@ -457,42 +463,6 @@ div[data-testid="stExpander"] * {{
 }}
 [data-testid="stDataFrame"] {{
     background: rgba(255,255,255,0.99) !important;
-}}
-
-
-/* Final visual polish: full yacht background + white text on blue buttons */
-.stButton button,
-.stButton button *,
-button[kind="primary"],
-button[kind="secondary"],
-button[kind="primary"] *,
-button[kind="secondary"] * {{
-    color: #FFFFFF !important;
-    font-weight: 900 !important;
-}}
-
-.stButton button p,
-.stButton button span,
-.stButton button div {{
-    color: #FFFFFF !important;
-}}
-
-.nav-caption {{
-    background: rgba(255,255,255,0.94) !important;
-    color: #071A2F !important;
-}}
-
-.search-card,
-.dashboard-card,
-.answer-card,
-.ai-answer-html,
-.timeline-box,
-.service-card,
-.upgrade-card,
-.profile-tile,
-.metric-card,
-div[data-testid="stExpander"] {{
-    backdrop-filter: blur(6px);
 }}
 
 </style>
@@ -973,6 +943,14 @@ def build_boat_profile(sales_context, line_context, invoice_context, upgrade_opp
         original_so = get_first_value(sales_context, [sales_order_col] if sales_order_col else [])
 
     service_count = 1 if "recommended" in str(service_message).lower() else 0
+    upgrade_count = len(upgrade_opportunities)
+
+    if service_count > 0 or upgrade_count >= 2:
+        opportunity_level = "High"
+    elif upgrade_count == 1:
+        opportunity_level = "Medium"
+    else:
+        opportunity_level = "Low"
 
     return {
         "Boat / Hull": boat_name,
@@ -981,7 +959,8 @@ def build_boat_profile(sales_context, line_context, invoice_context, upgrade_opp
         "Line Items": len(line_context),
         "Invoice Records": len(invoice_context),
         "Service Signals": service_count,
-        "Upgrade Opportunities": len(upgrade_opportunities),
+        "Upgrade Opportunities": upgrade_count,
+        "Opportunity Level": opportunity_level,
     }
 
 
@@ -993,6 +972,7 @@ def render_boat_profile(profile):
     line_items_count = safe_text(profile.get("Line Items", 0))
     invoices_count = safe_text(profile.get("Invoice Records", 0))
     service_signals = safe_text(profile.get("Service Signals", 0))
+    opportunity_level = safe_text(profile.get("Opportunity Level", "Unknown"))
     st.markdown(
         f"""
 <div class="profile-grid">
@@ -1005,7 +985,7 @@ def render_boat_profile(profile):
   <div class="profile-tile"><div class="profile-label">Line Items</div><div class="profile-value">{line_items_count}</div></div>
   <div class="profile-tile"><div class="profile-label">Invoices</div><div class="profile-value">{invoices_count}</div></div>
   <div class="profile-tile"><div class="profile-label">Service Signals</div><div class="profile-value">{service_signals}</div></div>
-  <div class="profile-tile"><div class="profile-label">Status</div><div class="profile-value">Ready</div></div>
+  <div class="profile-tile"><div class="profile-label">Opportunity Level</div><div class="profile-value">{opportunity_level}</div></div>
 </div>
 """,
         unsafe_allow_html=True,
