@@ -37,7 +37,7 @@ st.markdown(
 
 [data-testid="stAppViewContainer"] {{
     background:
-        linear-gradient(120deg, rgba(246,250,253,0.90), rgba(246,250,253,0.90)),
+        linear-gradient(120deg, rgba(0,18,36,0.28), rgba(0,18,36,0.10)),
         url("{BACKGROUND_IMAGE_URL}");
     background-size: cover;
     background-position: center;
@@ -458,6 +458,42 @@ div[data-testid="stExpander"] * {{
 [data-testid="stDataFrame"] {{
     background: rgba(255,255,255,0.99) !important;
 }}
+
+
+/* Final visual polish: full yacht background + white text on blue buttons */
+.stButton button,
+.stButton button *,
+button[kind="primary"],
+button[kind="secondary"],
+button[kind="primary"] *,
+button[kind="secondary"] * {
+    color: #FFFFFF !important;
+    font-weight: 900 !important;
+}
+
+.stButton button p,
+.stButton button span,
+.stButton button div {
+    color: #FFFFFF !important;
+}
+
+.nav-caption {
+    background: rgba(255,255,255,0.94) !important;
+    color: #071A2F !important;
+}
+
+.search-card,
+.dashboard-card,
+.answer-card,
+.ai-answer-html,
+.timeline-box,
+.service-card,
+.upgrade-card,
+.profile-tile,
+.metric-card,
+div[data-testid="stExpander"] {
+    backdrop-filter: blur(6px);
+}
 
 </style>
 """,
