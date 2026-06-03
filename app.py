@@ -273,29 +273,6 @@ p, li, div {{
     box-shadow: 0 12px 36px rgba(7,28,49,0.10);
 }}
 
-.revenue-card {{
-    background: linear-gradient(135deg, rgba(13,79,124,0.12), rgba(255,255,255,0.96));
-    border: 1px solid rgba(13,79,124,0.22);
-    border-radius: 20px;
-    padding: 18px 20px;
-    box-shadow: 0 12px 36px rgba(7,28,49,0.10);
-    margin-bottom: 12px;
-}}
-
-.evidence-card {{
-    background: rgba(255,255,255,0.95);
-    border: 1px solid rgba(16,43,73,0.14);
-    border-radius: 20px;
-    padding: 18px 20px;
-    box-shadow: 0 12px 36px rgba(7,28,49,0.10);
-    margin-bottom: 12px;
-}}
-
-.evidence-card ul {{
-    margin-top: 8px;
-    margin-bottom: 0;
-}}
-
 .upgrade-card {{
     background: rgba(255,255,255,0.95);
     border: 1px solid rgba(13,79,124,0.18);
@@ -352,6 +329,68 @@ div[data-testid="stExpander"] {{
     text-align: center;
     padding: 14px 0 0 0;
 }}
+
+.profile-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 12px;
+}
+.profile-tile {
+    background: rgba(255,255,255,0.94);
+    border: 1px solid rgba(16,43,73,0.12);
+    border-radius: 18px;
+    padding: 14px 16px;
+    box-shadow: 0 12px 32px rgba(7,28,49,0.10);
+}
+.profile-label {
+    color: var(--abt-muted);
+    font-size: 0.78rem;
+    font-weight: 850;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+}
+.profile-value {
+    color: var(--abt-navy);
+    font-size: 1.2rem;
+    font-weight: 900;
+    margin-top: 4px;
+}
+.timeline-box {
+    background: rgba(255,255,255,0.94);
+    border: 1px solid rgba(16,43,73,0.12);
+    border-radius: 20px;
+    padding: 16px 18px;
+    box-shadow: 0 12px 32px rgba(7,28,49,0.10);
+    margin-bottom: 10px;
+}
+.timeline-item {
+    border-left: 4px solid var(--abt-blue);
+    padding: 6px 0 10px 14px;
+    margin-left: 5px;
+}
+.timeline-date {
+    color: var(--abt-blue);
+    font-weight: 900;
+    font-size: 0.9rem;
+}
+.timeline-title {
+    color: var(--abt-navy);
+    font-weight: 900;
+}
+.timeline-copy {
+    color: var(--abt-muted);
+    font-size: 0.9rem;
+}
+.dashboard-card {
+    background: rgba(255,255,255,0.94);
+    border: 1px solid rgba(16,43,73,0.12);
+    border-radius: 22px;
+    padding: 18px 20px;
+    box-shadow: 0 16px 48px rgba(7,28,49,0.13);
+    margin: 18px 0;
+}
+
 </style>
 """,
     unsafe_allow_html=True,
@@ -702,85 +741,6 @@ def get_upgrade_links(row):
     return links
 
 
-
-def get_upgrade_revenue_estimate(upgrade_name):
-    name = str(upgrade_name).lower()
-
-    if "tracstar" in name or "trac star" in name:
-        return 15000, 35000, "TRACStar upgrade estimate"
-
-    if "dc" in name or "electric" in name or "conversion" in name:
-        return 40000, 120000, "Hydraulic-to-electric conversion estimate"
-
-    if "seal" in name or "service" in name:
-        return 2500, 10000, "Service parts estimate"
-
-    return 10000, 30000, "General upgrade estimate"
-
-
-def format_money(value):
-    try:
-        return f"${int(value):,}"
-    except Exception:
-        return "$0"
-
-
-def calculate_revenue_opportunity(upgrade_opportunities, service_message):
-    low_total = 0
-    high_total = 0
-    details = []
-
-    if "recommended service" in str(service_message).lower():
-        low_total += 2500
-        high_total += 10000
-        details.append({
-            "Name": "Actuator seal kit / service follow-up",
-            "Range": "$2,500 - $10,000",
-            "Basis": "Service recommended by seal kit timing/history logic",
-        })
-
-    for opp in upgrade_opportunities:
-        low, high, basis = get_upgrade_revenue_estimate(opp.get("Upgrade", ""))
-        low_total += low
-        high_total += high
-        details.append({
-            "Name": opp.get("Upgrade", "Upgrade opportunity"),
-            "Range": f"{format_money(low)} - {format_money(high)}",
-            "Basis": basis,
-        })
-
-    return low_total, high_total, details
-
-
-def build_evidence_items(extracted_terms, related_sos, sales_context, line_context, invoice_context, service_message, seal_rows, upgrade_opportunities, part_history):
-    items = []
-
-    if extracted_terms:
-        items.append(f"Search terms used: {', '.join(map(str, extracted_terms))}")
-
-    if related_sos:
-        preview_sos = sorted(list(related_sos))[:8]
-        more = "" if len(related_sos) <= 8 else f" + {len(related_sos) - 8} more"
-        items.append(f"Related sales orders identified: {', '.join(preview_sos)}{more}")
-
-    items.append(f"Records reviewed: {len(sales_context)} sales orders, {len(line_context)} line items, {len(invoice_context)} invoice records")
-    items.append(f"Unique part numbers found in vessel history: {len(part_history)}")
-    items.append(f"Service evidence: {service_message}")
-
-    if not seal_rows.empty:
-        items.append(f"Actuator seal kit matching rows found: {len(seal_rows)}")
-    else:
-        items.append("Actuator seal kit matching rows found: 0")
-
-    if upgrade_opportunities:
-        for opp in upgrade_opportunities:
-            match_text = opp.get("Matching Existing Parts", "") or "qualifier not required"
-            items.append(f"Upgrade evidence for {opp.get('Upgrade')}: existing qualifying part(s): {match_text}; installed upgrade part not found in vessel history")
-    else:
-        items.append("Upgrade evidence: no applicable upgrade opportunities found under current rules")
-
-    return items
-
 def analyze_upgrade_opportunities(question, sales_matches):
     related_sales, related_lines, related_invoices, related_sos = get_related_history(
         question,
@@ -808,13 +768,10 @@ def analyze_upgrade_opportunities(question, sales_matches):
         has_qualifying_part = any(part in part_history for part in qualifying_parts) if qualifying_parts else True
 
         if (not has_blocking_part) and has_qualifying_part:
-            low, high, basis = get_upgrade_revenue_estimate(upgrade_name)
             opportunities.append({
                 "Upgrade": upgrade_name,
                 "Matching Existing Parts": ", ".join([p for p in qualifying_parts if p in part_history]),
                 "Literature": get_upgrade_links(row),
-                "Revenue Range": f"{format_money(low)} - {format_money(high)}",
-                "Revenue Basis": basis,
             })
 
     return opportunities
@@ -833,6 +790,234 @@ def opportunities_to_text(opportunities):
         lines.append("")
     return "\n".join(lines)
 
+
+def get_first_value(df, possible_cols):
+    for col in possible_cols:
+        if col and col in df.columns:
+            vals = df[col].dropna().astype(str).str.strip()
+            vals = vals[vals.str.lower() != "nan"]
+            if not vals.empty:
+                return vals.iloc[0]
+    return "Not found"
+
+
+def build_boat_profile(sales_context, line_context, invoice_context, upgrade_opportunities, service_message):
+    original_so_col = get_first_matching_col(sales_orders, ["original so", "orig so", "original sales order", "original order"])
+    sales_order_col = get_first_matching_col(sales_orders, ["sales order", "so number", "order number", "so"])
+
+    boat_name = get_first_value(sales_context, ["Hull Project", "Order Name", "Boat Name", "Vessel Name", "Hull Number"])
+    original_so = get_first_value(sales_context, [original_so_col] if original_so_col else [])
+
+    if original_so == "Not found":
+        original_so = get_first_value(sales_context, [sales_order_col] if sales_order_col else [])
+
+    service_count = 1 if "recommended" in str(service_message).lower() else 0
+
+    return {
+        "Boat / Hull": boat_name,
+        "Original Sales Order": original_so,
+        "Related Sales Orders": len(sales_context),
+        "Line Items": len(line_context),
+        "Invoice Records": len(invoice_context),
+        "Service Signals": service_count,
+        "Upgrade Opportunities": len(upgrade_opportunities),
+    }
+
+
+def render_boat_profile(profile):
+    boat = safe_text(profile.get("Boat / Hull", "Not found"))
+    original_so = safe_text(profile.get("Original Sales Order", "Not found"))
+    related_sos = safe_text(profile.get("Related Sales Orders", 0))
+    upgrade_opps = safe_text(profile.get("Upgrade Opportunities", 0))
+    line_items_count = safe_text(profile.get("Line Items", 0))
+    invoices_count = safe_text(profile.get("Invoice Records", 0))
+    service_signals = safe_text(profile.get("Service Signals", 0))
+    st.markdown(
+        f"""
+<div class="profile-grid">
+  <div class="profile-tile"><div class="profile-label">Boat / Hull</div><div class="profile-value">{boat}</div></div>
+  <div class="profile-tile"><div class="profile-label">Original SO</div><div class="profile-value">{original_so}</div></div>
+  <div class="profile-tile"><div class="profile-label">Related SOs</div><div class="profile-value">{related_sos}</div></div>
+  <div class="profile-tile"><div class="profile-label">Upgrade Opps</div><div class="profile-value">{upgrade_opps}</div></div>
+</div>
+<div class="profile-grid">
+  <div class="profile-tile"><div class="profile-label">Line Items</div><div class="profile-value">{line_items_count}</div></div>
+  <div class="profile-tile"><div class="profile-label">Invoices</div><div class="profile-value">{invoices_count}</div></div>
+  <div class="profile-tile"><div class="profile-label">Service Signals</div><div class="profile-value">{service_signals}</div></div>
+  <div class="profile-tile"><div class="profile-label">Status</div><div class="profile-value">Ready</div></div>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
+
+def build_vessel_timeline(sales_context, invoice_context, seal_rows, upgrade_opportunities):
+    events = []
+
+    sales_order_col = get_first_matching_col(sales_context, ["sales order", "so number", "order number", "so"])
+    original_so_col = get_first_matching_col(sales_context, ["original so", "orig so", "original sales order", "original order"])
+    type_col = get_first_matching_col(sales_context, ["type of sale", "sale type", "type"])
+
+    if sales_order_col and not sales_context.empty:
+        for _, row in sales_context.head(12).iterrows():
+            so = normalize_so(row.get(sales_order_col, ""))
+            orig = normalize_so(row.get(original_so_col, "")) if original_so_col else ""
+            sale_type = str(row.get(type_col, "Sales order")) if type_col else "Sales order"
+            label = "Original sale" if so and orig and so == orig else "Related sales order"
+            events.append({"sort": 1, "date": f"SO {so}", "title": label, "copy": sale_type})
+
+    date_cols_inv = find_cols(invoice_context, ["ship date", "shipdate", "invoice date", "date"])
+    so_cols_inv = find_cols(invoice_context, ["sales order", "so number", "order number", "so"])
+    if date_cols_inv and not invoice_context.empty:
+        date_col = date_cols_inv[0]
+        so_col = so_cols_inv[0] if so_cols_inv else None
+        temp = invoice_context.copy()
+        temp["_timeline_date"] = pd.to_datetime(temp[date_col], errors="coerce")
+        temp = temp.dropna(subset=["_timeline_date"]).sort_values("_timeline_date").tail(8)
+        for _, row in temp.iterrows():
+            so = normalize_so(row.get(so_col, "")) if so_col else ""
+            events.append({
+                "sort": row["_timeline_date"],
+                "date": str(row["_timeline_date"].date()),
+                "title": "Invoice / shipment",
+                "copy": f"Shipment or invoice record linked to SO {so}" if so else "Shipment or invoice record",
+            })
+
+    if seal_rows is not None and not seal_rows.empty:
+        events.append({
+            "sort": 9998,
+            "date": "Service",
+            "title": "Actuator seal kit history found",
+            "copy": f"{len(seal_rows)} matching seal kit line item(s) found in related history.",
+        })
+
+    for opp in upgrade_opportunities:
+        events.append({
+            "sort": 9999,
+            "date": "Opportunity",
+            "title": opp.get("Upgrade", "Upgrade Opportunity"),
+            "copy": "Eligible based on current boat history and upgrade rules.",
+        })
+
+    def sort_key(event):
+        v = event.get("sort", 0)
+        if isinstance(v, pd.Timestamp):
+            return v.value
+        try:
+            return int(v)
+        except Exception:
+            return 0
+
+    return sorted(events, key=sort_key)[:18]
+
+
+def render_vessel_timeline(events):
+    if not events:
+        st.info("No timeline events found for this search.")
+        return
+
+    st.markdown('<div class="timeline-box">', unsafe_allow_html=True)
+    for event in events:
+        date = safe_text(event.get("date", ""))
+        title = safe_text(event.get("title", ""))
+        copy = safe_text(event.get("copy", ""))
+        st.markdown(
+            f"""
+<div class="timeline-item">
+  <div class="timeline-date">{date}</div>
+  <div class="timeline-title">{title}</div>
+  <div class="timeline-copy">{copy}</div>
+</div>
+""",
+            unsafe_allow_html=True,
+        )
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+def evaluate_upgrade_for_part_history(row, part_history):
+    upgrade_name = str(row.iloc[0]).strip()
+    if not upgrade_name or upgrade_name.lower() == "nan":
+        return None
+
+    must_not_have = normalize_part(row.iloc[1]) if len(row) > 1 else ""
+    qualifying_parts = [normalize_part(v) for v in row.iloc[2:9] if normalize_part(v)]
+
+    has_blocking_part = must_not_have in part_history if must_not_have else False
+    matching_parts = [p for p in qualifying_parts if p in part_history]
+    has_qualifying_part = bool(matching_parts) if qualifying_parts else True
+
+    if (not has_blocking_part) and has_qualifying_part:
+        return {
+            "Upgrade": upgrade_name,
+            "Missing Installed Part": must_not_have,
+            "Matching Existing Parts": ", ".join(matching_parts),
+            "Literature": get_upgrade_links(row),
+        }
+    return None
+
+
+@st.cache_data(show_spinner=False)
+def build_customer_opportunity_dashboard(selected_upgrade="All Upgrade Types"):
+    original_so_col = get_first_matching_col(sales_orders, ["original so", "orig so", "original sales order", "original order"])
+    sales_order_col = get_first_matching_col(sales_orders, ["sales order", "so number", "order number", "so"])
+    line_so_col = get_first_matching_col(line_items, ["sales order", "so number", "order number", "so"])
+    part_col = get_part_number_col(line_items)
+
+    if not original_so_col or not sales_order_col or not line_so_col or not part_col:
+        return pd.DataFrame()
+
+    rows = []
+    temp_sales = sales_orders.dropna(subset=[original_so_col]).copy()
+    temp_sales["_orig_norm"] = temp_sales[original_so_col].map(normalize_so)
+
+    for original_so, sales_group in temp_sales.groupby("_orig_norm"):
+        if not original_so or str(original_so).lower() == "nan":
+            continue
+
+        related_sos = set(sales_group[sales_order_col].dropna().map(normalize_so).tolist())
+        if not related_sos:
+            continue
+
+        related_lines = line_items[line_items[line_so_col].map(normalize_so).isin(related_sos)]
+        if related_lines.empty:
+            continue
+
+        part_history = set(related_lines[part_col].dropna().map(normalize_part).tolist())
+        if not part_history:
+            continue
+
+        boat_name = get_first_value(sales_group, ["Hull Project", "Order Name", "Boat Name", "Vessel Name", "Hull Number"])
+
+        for _, upgrade_row in upgrades.iterrows():
+            result = evaluate_upgrade_for_part_history(upgrade_row, part_history)
+            if not result:
+                continue
+            if selected_upgrade != "All Upgrade Types" and result["Upgrade"] != selected_upgrade:
+                continue
+
+            lit_names = ", ".join([name for name, url in result["Literature"]])
+            rows.append({
+                "Original Sales Order": original_so,
+                "Boat / Hull": boat_name,
+                "Upgrade Type": result["Upgrade"],
+                "Related Sales Orders": len(related_sos),
+                "Matching Existing Parts": result["Matching Existing Parts"],
+                "Literature": lit_names,
+            })
+
+    return pd.DataFrame(rows).drop_duplicates()
+
+
+
+# -----------------------------------------------------------------------------
+# Session state
+# -----------------------------------------------------------------------------
+
+if "latest_analysis" not in st.session_state:
+    st.session_state.latest_analysis = None
+
+if "active_panel" not in st.session_state:
+    st.session_state.active_panel = "summary"
 
 # -----------------------------------------------------------------------------
 # Header / demo-ready UI
@@ -883,6 +1068,42 @@ with nav4:
         st.session_state.active_panel = "summary"
     st.markdown('<div class="nav-caption">Concise AI-generated summary for sales follow-up.</div>', unsafe_allow_html=True)
 
+section_header("Customer Opportunity Dashboard", "Find Eligible Original Sales Orders by Upgrade Type")
+st.markdown('<div class="dashboard-card">', unsafe_allow_html=True)
+upgrade_names = [str(x).strip() for x in upgrades.iloc[:, 0].dropna().tolist() if str(x).strip()]
+upgrade_filter = st.selectbox("Upgrade type", ["All Upgrade Types"] + upgrade_names, index=0)
+scan_clicked = st.button("Scan Customer Base for Eligible Upgrade Opportunities", key="scan_customer_base")
+
+if scan_clicked or "opportunity_dashboard" in st.session_state:
+    if scan_clicked:
+        with st.spinner("Scanning original sales orders and line item history..."):
+            st.session_state.opportunity_dashboard = build_customer_opportunity_dashboard(upgrade_filter)
+            st.session_state.opportunity_dashboard_filter = upgrade_filter
+
+    dashboard_df = st.session_state.get("opportunity_dashboard", pd.DataFrame())
+    dashboard_filter = st.session_state.get("opportunity_dashboard_filter", upgrade_filter)
+    st.caption(f"Showing eligible original sales orders for: {dashboard_filter}")
+
+    if dashboard_df.empty:
+        st.info("No eligible opportunities found for this upgrade type.")
+    else:
+        d1, d2, d3 = st.columns(3)
+        with d1:
+            metric_card(len(dashboard_df), "Eligible Records")
+        with d2:
+            metric_card(dashboard_df["Original Sales Order"].nunique(), "Original SOs")
+        with d3:
+            metric_card(dashboard_df["Upgrade Type"].nunique(), "Upgrade Types")
+        st.dataframe(dashboard_df, use_container_width=True, hide_index=True)
+        st.download_button(
+            "Download Opportunity List as CSV",
+            dashboard_df.to_csv(index=False),
+            file_name="abt_trac_upgrade_opportunities.csv",
+            mime="text/csv",
+        )
+
+st.markdown('</div>', unsafe_allow_html=True)
+
 st.markdown('<div class="search-card">', unsafe_allow_html=True)
 st.markdown('<div class="search-label">Search Vessel History, Service Opportunities, and Upgrade Recommendations</div>', unsafe_allow_html=True)
 st.markdown('<div class="search-help">Ask ABT AI about a <b>Sales Order Number</b>, <b>Boat Name</b>, or <b>Hull Number</b>.</div>', unsafe_allow_html=True)
@@ -930,22 +1151,6 @@ if ask_clicked:
 
             upgrade_opportunities = analyze_upgrade_opportunities(question, sales_matches)
             upgrade_text = opportunities_to_text(upgrade_opportunities)
-            part_history = get_part_history_set(line_context)
-            revenue_low, revenue_high, revenue_details = calculate_revenue_opportunity(
-                upgrade_opportunities,
-                service_message,
-            )
-            evidence_items = build_evidence_items(
-                extracted_terms,
-                related_sos,
-                sales_context,
-                line_context,
-                invoice_context,
-                service_message,
-                seal_rows,
-                upgrade_opportunities,
-                part_history,
-            )
 
             context = f"""
 USER QUESTION:
@@ -959,9 +1164,6 @@ RECOMMENDED SERVICE:
 
 UPGRADE OPPORTUNITIES:
 {upgrade_text}
-
-ESTIMATED REVENUE OPPORTUNITY:
-{format_money(revenue_low)} - {format_money(revenue_high)}
 
 MATCHING SALES ORDER RECORDS:
 {compact_table_text(sales_context)}
@@ -998,8 +1200,7 @@ Organize answers into:
 1. Summary
 2. Recommended Service
 3. Upgrade Opportunities
-4. Estimated Revenue Opportunity
-5. Supporting Records
+4. Supporting Records
 
 Use only the records provided.
 Do not invent facts.
@@ -1015,6 +1216,20 @@ Be concise and useful for a marine parts salesperson.
 
             ai_answer = response.choices[0].message.content
 
+            boat_profile = build_boat_profile(
+                sales_context,
+                line_context,
+                invoice_context,
+                upgrade_opportunities,
+                service_message,
+            )
+            vessel_timeline = build_vessel_timeline(
+                sales_context,
+                invoice_context,
+                seal_rows,
+                upgrade_opportunities,
+            )
+
             st.session_state.latest_analysis = {
                 "ai_answer": ai_answer,
                 "extracted_terms": extracted_terms,
@@ -1024,10 +1239,8 @@ Be concise and useful for a marine parts salesperson.
                 "service_message": service_message,
                 "seal_rows": seal_rows,
                 "upgrade_opportunities": upgrade_opportunities,
-                "revenue_low": revenue_low,
-                "revenue_high": revenue_high,
-                "revenue_details": revenue_details,
-                "evidence_items": evidence_items,
+                "boat_profile": boat_profile,
+                "vessel_timeline": vessel_timeline,
             }
             st.session_state.active_panel = "summary"
 
@@ -1039,18 +1252,19 @@ def render_upgrade_cards(upgrade_opportunities):
                 f"""
 <div class="upgrade-card">
   <div class="upgrade-title">{safe_text(opp['Upgrade'])}</div>
-  <div><b>Estimated opportunity:</b> {safe_text(opp.get('Revenue Range', 'Estimate pending'))}</div>
-  <div class="small-muted">Supporting literature</div>
+  <div class="small-muted">Clickable supporting literature</div>
 """,
                 unsafe_allow_html=True,
             )
 
+            if opp.get("Matching Existing Parts"):
+                st.caption(f"Relevant existing parts found: {opp['Matching Existing Parts']}")
+
             if opp["Literature"]:
-                for name, url in opp["Literature"]:
-                    st.markdown(
-                        f'<div class="lit-link">• <a href="{safe_text(url)}" target="_blank">{safe_text(name)}</a></div>',
-                        unsafe_allow_html=True,
-                    )
+                cols = st.columns(min(len(opp["Literature"]), 3))
+                for i, (name, url) in enumerate(opp["Literature"]):
+                    with cols[i % len(cols)]:
+                        st.link_button(name, url, use_container_width=True)
             else:
                 st.caption("No literature file listed.")
 
@@ -1059,42 +1273,7 @@ def render_upgrade_cards(upgrade_opportunities):
         st.info("No applicable upgrade opportunities found.")
 
 
-
-def render_revenue_opportunity(data):
-    section_header("Business Value", "Estimated Revenue Opportunity")
-    st.markdown(
-        f"""
-<div class="revenue-card">
-  <div class="upgrade-title">Estimated Opportunity: {safe_text(format_money(data['revenue_low']))} - {safe_text(format_money(data['revenue_high']))}</div>
-  <div class="small-muted">Directional estimate for demo purposes. Final quote requires salesperson review.</div>
-</div>
-""",
-        unsafe_allow_html=True,
-    )
-
-    if data["revenue_details"]:
-        revenue_df = pd.DataFrame(data["revenue_details"])
-        st.dataframe(revenue_df, use_container_width=True, hide_index=True)
-    else:
-        st.info("No revenue opportunity estimated from current service or upgrade rules.")
-
-
-def render_evidence(data):
-    section_header("Explainability", "Why This Recommendation Was Made")
-    evidence_html = "".join([f"<li>{safe_text(item)}</li>" for item in data.get("evidence_items", [])])
-    st.markdown(
-        f"""
-<div class="evidence-card">
-  <div class="upgrade-title">Evidence Used by ABT-TRAC AI</div>
-  <ul>{evidence_html}</ul>
-</div>
-""",
-        unsafe_allow_html=True,
-    )
-
 def render_latest_analysis():
-    if "latest_analysis" not in st.session_state:
-        return
     data = st.session_state.latest_analysis
 
     if not data:
@@ -1104,9 +1283,12 @@ def render_latest_analysis():
         )
         return
 
+    section_header("Analysis Complete", "Boat Profile")
+    render_boat_profile(data.get("boat_profile", {}))
+
     section_header("Analysis Complete", "Marine AI Dashboard")
 
-    m1, m2, m3, m4, m5 = st.columns(5)
+    m1, m2, m3, m4 = st.columns(4)
     with m1:
         metric_card(len(data["sales_context"]), "Sales Orders")
     with m2:
@@ -1114,9 +1296,7 @@ def render_latest_analysis():
     with m3:
         metric_card(len(data["invoice_context"]), "Invoice Records")
     with m4:
-        metric_card(len(data["upgrade_opportunities"]), "Upgrades")
-    with m5:
-        metric_card(f"{format_money(data['revenue_low'])}-{format_money(data['revenue_high'])}", "Revenue Estimate")
+        metric_card(len(data["upgrade_opportunities"]), "Upgrade Opportunities")
 
     active = st.session_state.active_panel
 
@@ -1125,11 +1305,8 @@ def render_latest_analysis():
         st.markdown('<div class="answer-card">', unsafe_allow_html=True)
         st.markdown(data["ai_answer"])
         st.markdown('</div>', unsafe_allow_html=True)
-        render_revenue_opportunity(data)
-        render_evidence(data)
 
     elif active == "service":
-        render_revenue_opportunity(data)
         section_header("Service Signals", "Recommended Service")
         st.markdown(
             f"""
@@ -1140,17 +1317,17 @@ def render_latest_analysis():
 """,
             unsafe_allow_html=True,
         )
-        render_evidence(data)
         with st.expander("Actuator seal kit rows", expanded=True):
             st.dataframe(data["seal_rows"], use_container_width=True, hide_index=True)
 
     elif active == "upgrades":
-        render_revenue_opportunity(data)
         section_header("Upgrade Paths", "Applicable Upgrades")
         render_upgrade_cards(data["upgrade_opportunities"])
-        render_evidence(data)
 
     elif active == "vessel":
+        section_header("Vessel History", "Vessel Timeline")
+        render_vessel_timeline(data.get("vessel_timeline", []))
+
         section_header("Vessel History", "Supporting Records")
         st.markdown(
             "".join([f'<span class="pill">{safe_text(term)}</span>' for term in data["extracted_terms"]])
