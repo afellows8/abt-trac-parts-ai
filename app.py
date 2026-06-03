@@ -935,6 +935,90 @@ def get_first_value(df, possible_cols):
     return "Not found"
 
 
+def looks_like_hull_or_model(value):
+    text = str(value).strip().upper()
+    if not text:
+        return True
+
+    # Reject obvious hull/model references like 75-10, 65-042, F65-042, Fleming 75-10.
+    if re.fullmatch(r"[A-Z]?\d{2,4}[- ]\d{1,4}", text):
+        return True
+    if re.search(r"\b[A-Z]?\d{2,4}[- ]\d{1,4}\b", text) and any(
+        word in text for word in ["FLEMING", "HULL", "MODEL"]
+    ):
+        return True
+    if re.fullmatch(r"\d+", text):
+        return True
+
+    return False
+
+
+def extract_vessel_names_from_value(value):
+    """Return only likely vessel names, not hull/model numbers."""
+    if pd.isna(value):
+        return []
+
+    raw = str(value).strip()
+    if not raw or raw.lower() == "nan":
+        return []
+
+    # Best source: vessel names often appear inside quotes, e.g. FLEMING 75-10 “VAMOOSE”.
+    quoted_names = re.findall(r'["“”\']([^"“”\']+)["“”\']', raw)
+    cleaned = []
+
+    if quoted_names:
+        candidates = quoted_names
+    else:
+        candidates = [raw]
+
+    for candidate in candidates:
+        name = str(candidate).strip()
+        name = re.sub(r"\s+", " ", name)
+        name = name.strip(" -–—_:;,.()[]{}")
+
+        if not name:
+            continue
+        if looks_like_hull_or_model(name):
+            continue
+
+        # Avoid common customer/company placeholders when pulled from broad fields.
+        upper = name.upper()
+        reject_words = [
+            "INDUSTRIAL", "MARINE", "YACHT SALES", "EQUIPMENT", "CORP", "INC",
+            "LLC", "LTD", "COMPANY", "CUSTOMER", "WARRANTY", "NO CHARGE", "SPARE PARTS"
+        ]
+        if any(word in upper for word in reject_words):
+            continue
+
+        cleaned.append(name.upper())
+
+    return cleaned
+
+
+def collect_known_vessel_names(sales_context):
+    if sales_context is None or sales_context.empty:
+        return []
+
+    candidate_cols = []
+    for col in sales_context.columns:
+        col_l = str(col).lower()
+        if any(k in col_l for k in ["boat", "vessel", "yacht", "name", "hull project"]):
+            candidate_cols.append(col)
+
+    names = []
+    seen = set()
+
+    for col in candidate_cols:
+        for value in sales_context[col].dropna().tolist():
+            for name in extract_vessel_names_from_value(value):
+                key = name.upper().strip()
+                if key and key not in seen:
+                    names.append(name)
+                    seen.add(key)
+
+    return names
+
+
 def build_boat_profile(sales_context, line_context, invoice_context, upgrade_opportunities, service_message):
     original_so_col = get_first_matching_col(sales_orders, ["original so", "orig so", "original sales order", "original order"])
     sales_order_col = get_first_matching_col(sales_orders, ["sales order", "so number", "order number", "so"])
@@ -944,6 +1028,8 @@ def build_boat_profile(sales_context, line_context, invoice_context, upgrade_opp
 
     if original_so == "Not found":
         original_so = get_first_value(sales_context, [sales_order_col] if sales_order_col else [])
+
+    known_vessel_names = collect_known_vessel_names(sales_context)
 
     service_count = 1 if "recommended" in str(service_message).lower() else 0
     upgrade_count = len(upgrade_opportunities)
@@ -960,7 +1046,7 @@ def build_boat_profile(sales_context, line_context, invoice_context, upgrade_opp
         "Original Sales Order": original_so,
         "Related Sales Orders": len(sales_context),
         "Line Items": len(line_context),
-        "Invoice Records": len(invoice_context),
+        "Known Vessel Names": ", ".join(known_vessel_names[:4]) if known_vessel_names else "No vessel names found",
         "Service Signals": service_count,
         "Upgrade Opportunities": upgrade_count,
         "Opportunity Level": opportunity_level,
@@ -973,7 +1059,7 @@ def render_boat_profile(profile):
     related_sos = safe_text(profile.get("Related Sales Orders", 0))
     upgrade_opps = safe_text(profile.get("Upgrade Opportunities", 0))
     line_items_count = safe_text(profile.get("Line Items", 0))
-    invoices_count = safe_text(profile.get("Invoice Records", 0))
+    known_vessel_names = safe_text(profile.get("Known Vessel Names", "No vessel names found"))
     service_signals = safe_text(profile.get("Service Signals", 0))
     opportunity_level = safe_text(profile.get("Opportunity Level", "Unknown"))
     st.markdown(
@@ -986,7 +1072,7 @@ def render_boat_profile(profile):
 </div>
 <div class="profile-grid">
   <div class="profile-tile"><div class="profile-label">Line Items</div><div class="profile-value">{line_items_count}</div></div>
-  <div class="profile-tile"><div class="profile-label">Invoices</div><div class="profile-value">{invoices_count}</div></div>
+  <div class="profile-tile"><div class="profile-label">Known Vessel Names</div><div class="profile-value">{known_vessel_names}</div></div>
   <div class="profile-tile"><div class="profile-label">Service Signals</div><div class="profile-value">{service_signals}</div></div>
   <div class="profile-tile"><div class="profile-label">Opportunity Level</div><div class="profile-value">{opportunity_level}</div></div>
 </div>
