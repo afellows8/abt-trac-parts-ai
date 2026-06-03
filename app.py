@@ -4,6 +4,7 @@ from datetime import datetime
 
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 from openai import OpenAI
 from PIL import Image
 
@@ -1256,6 +1257,9 @@ if "latest_analysis" not in st.session_state:
 if "active_panel" not in st.session_state:
     st.session_state.active_panel = "summary"
 
+if "scroll_to_analysis" not in st.session_state:
+    st.session_state.scroll_to_analysis = False
+
 # -----------------------------------------------------------------------------
 # Header / demo-ready UI
 # -----------------------------------------------------------------------------
@@ -1291,19 +1295,25 @@ nav1, nav2, nav3, nav4 = st.columns(4)
 with nav1:
     if st.button("⚓ Vessel History", key="btn_vessel_history"):
         st.session_state.active_panel = "vessel"
+        st.session_state.scroll_to_analysis = True
     st.markdown('<div class="nav-caption">Sales orders, line items, invoices, and related vessel records.</div>', unsafe_allow_html=True)
 with nav2:
     if st.button("🔧 Service Signals", key="btn_service_signals"):
         st.session_state.active_panel = "service"
+        st.session_state.scroll_to_analysis = True
     st.markdown('<div class="nav-caption">Actuator seal kit timing and service follow-up opportunities.</div>', unsafe_allow_html=True)
 with nav3:
     if st.button("↗ Upgrade Paths", key="btn_upgrade_paths"):
         st.session_state.active_panel = "upgrades"
+        st.session_state.scroll_to_analysis = True
     st.markdown('<div class="nav-caption">Applicable upgrades and supporting literature links.</div>', unsafe_allow_html=True)
 with nav4:
     if st.button("AI Sales Summary", key="btn_sales_summary"):
         st.session_state.active_panel = "summary"
+        st.session_state.scroll_to_analysis = True
     st.markdown('<div class="nav-caption">Concise AI-generated summary for sales follow-up.</div>', unsafe_allow_html=True)
+
+st.markdown('<div class="jump-hint">After running an analysis, use these buttons to jump directly to the selected content section.</div>', unsafe_allow_html=True)
 
 section_header("Customer Opportunity Dashboard", "Find Eligible Original Sales Orders by Upgrade Type")
 st.markdown('<div class="dashboard-card">', unsafe_allow_html=True)
@@ -1480,6 +1490,7 @@ Be concise and useful for a marine parts salesperson.
                 "vessel_timeline": vessel_timeline,
             }
             st.session_state.active_panel = "summary"
+            st.session_state.scroll_to_analysis = True
 
 
 def render_upgrade_cards(upgrade_opportunities):
@@ -1583,6 +1594,23 @@ def render_latest_analysis():
         with st.expander("Invoice / ship date records", expanded=False):
             st.dataframe(data["invoice_context"], use_container_width=True, hide_index=True)
 
+
+st.markdown('<div id="analysis-content-anchor"></div>', unsafe_allow_html=True)
+
+if st.session_state.get("scroll_to_analysis", False):
+    components.html(
+        """
+        <script>
+        const anchor = window.parent.document.getElementById('analysis-content-anchor');
+        if (anchor) {
+            anchor.scrollIntoView({behavior: 'smooth', block: 'start'});
+        }
+        </script>
+        """,
+        height=0,
+        width=0,
+    )
+    st.session_state.scroll_to_analysis = False
 
 render_latest_analysis()
 
