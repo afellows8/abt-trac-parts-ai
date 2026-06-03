@@ -1093,6 +1093,8 @@ def render_evidence(data):
     )
 
 def render_latest_analysis():
+    if "latest_analysis" not in st.session_state:
+        return
     data = st.session_state.latest_analysis
 
     if not data:
