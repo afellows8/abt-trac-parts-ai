@@ -590,10 +590,34 @@ def search_df(df, question, max_rows=50):
     return results.drop(columns=["_search_text"], errors="ignore").head(max_rows)
 
 
+DEMO_HIDDEN_COLUMN_NAMES = {"order name"}
+DEMO_HIDDEN_COLUMN_KEYWORDS = ["contact", "email", "phone", "person"]
+
+
+def is_demo_hidden_column(col):
+    """Hide columns that can expose individual people in demo outputs."""
+    col_text = str(col).strip().lower()
+    if col_text in DEMO_HIDDEN_COLUMN_NAMES:
+        return True
+    return any(keyword in col_text for keyword in DEMO_HIDDEN_COLUMN_KEYWORDS)
+
+
+def demo_safe_df(df):
+    """Return a copy of a dataframe with sensitive demo columns removed."""
+    if df is None or getattr(df, "empty", True):
+        return pd.DataFrame() if df is None else df.copy()
+
+    safe = df.copy()
+    drop_cols = [col for col in safe.columns if is_demo_hidden_column(col)]
+    if drop_cols:
+        safe = safe.drop(columns=drop_cols, errors="ignore")
+    return safe.drop(columns=["_search_text"], errors="ignore")
+
+
 def compact_table_text(df, max_rows=20):
     if df.empty:
         return "No matching records found."
-    return df.head(max_rows).to_string(index=False)
+    return demo_safe_df(df).head(max_rows).to_string(index=False)
 
 
 def get_related_history(question, sales_matches):
@@ -840,33 +864,38 @@ def looks_like_hull_or_project(value):
 
 
 def get_known_vessel_names(sales_context):
-    name_cols = [
-        "Boat Name", "Vessel Name", "Yacht Name", "Ship Name", "Name",
-        "Order Name", "Hull Project"
-    ]
+    """Demo-safe vessel names: pull ONLY from Hull Project, never Order Name.
+
+    Order Name can contain customer/person/company names, so it is intentionally
+    excluded from the visible Boat Profile.
+    """
+    hull_col = get_exact_col(sales_context, "Hull Project")
+    if not hull_col or sales_context.empty:
+        return "No vessel names found"
+
     names = []
     seen = set()
-    for col in name_cols:
-        if col in sales_context.columns:
-            for value in sales_context[col].dropna().astype(str).str.strip():
-                if not value or value.lower() == "nan":
-                    continue
-                if looks_like_hull_or_project(value):
-                    continue
-                key = value.upper()
-                if key not in seen:
-                    names.append(value)
-                    seen.add(key)
+    for value in sales_context[hull_col].dropna().astype(str).str.strip():
+        if not value or value.lower() == "nan":
+            continue
+        if looks_like_hull_or_project(value):
+            continue
+        key = value.upper()
+        if key not in seen:
+            names.append(value)
+            seen.add(key)
+
     if not names:
         return "No vessel names found"
     return ", ".join(names[:4])
-
 
 def build_boat_profile(sales_context, line_context, invoice_context, upgrade_opportunities, service_message):
     original_so_col = get_first_matching_col(sales_orders, ["original so", "orig so", "original sales order", "original order"])
     sales_order_col = get_first_matching_col(sales_orders, ["sales order", "so number", "order number", "so"])
 
-    boat_name = get_first_value(sales_context, ["Hull Project", "Order Name", "Boat Name", "Vessel Name", "Hull Number"])
+    # Demo-safe: use only Hull Project for the visible boat/hull label.
+    # Do not fall back to Order Name because it may contain customer/person names.
+    boat_name = get_first_value(sales_context, ["Hull Project"])
     original_so = get_first_value(sales_context, [original_so_col] if original_so_col else [])
 
     if original_so == "Not found":
@@ -1707,11 +1736,11 @@ def render_latest_analysis():
             unsafe_allow_html=True,
         )
         with st.expander("Sales order records", expanded=True):
-            st.dataframe(data["sales_context"], use_container_width=True, hide_index=True)
+            st.dataframe(demo_safe_df(data["sales_context"]), use_container_width=True, hide_index=True)
         with st.expander("Line item records", expanded=False):
-            st.dataframe(data["line_context"], use_container_width=True, hide_index=True)
+            st.dataframe(demo_safe_df(data["line_context"]), use_container_width=True, hide_index=True)
         with st.expander("Invoice / ship date records", expanded=False):
-            st.dataframe(data["invoice_context"], use_container_width=True, hide_index=True)
+            st.dataframe(demo_safe_df(data["invoice_context"]), use_container_width=True, hide_index=True)
 
     with agent_tab:
         render_ai_agent_tab(data)
@@ -1745,10 +1774,10 @@ if scan_clicked or "opportunity_dashboard" in st.session_state:
             metric_card(dashboard_df["Original Sales Order"].nunique(), "Original SOs")
         with d3:
             metric_card(dashboard_df["Upgrade Type"].nunique(), "Upgrade Types")
-        st.dataframe(dashboard_df, use_container_width=True, hide_index=True)
+        st.dataframe(demo_safe_df(dashboard_df), use_container_width=True, hide_index=True)
         st.download_button(
             "Download Opportunity List as CSV",
-            dashboard_df.to_csv(index=False),
+            demo_safe_df(dashboard_df).to_csv(index=False),
             file_name="abt_trac_upgrade_opportunities.csv",
             mime="text/csv",
         )
@@ -1761,6 +1790,6 @@ if scan_clicked or "opportunity_dashboard" in st.session_state:
 st.markdown('</div>', unsafe_allow_html=True)
 
 st.markdown(
-    '<div class="footer-note">AI answers are based on uploaded sales order, line item, invoice, actuator seal kit, and upgrade opportunity records.</div>',
+    '<div class="footer-note">AI answers are based on uploaded records. Demo view hides Order Name/contact-style fields from visible outputs.</div>',
     unsafe_allow_html=True,
 )
