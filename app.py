@@ -466,17 +466,17 @@ div[data-testid="stButton"] button *,
 .stButton button,
 .stButton button *,
 .stButton button p,
-.stButton button span {
+.stButton button span {{
     color: #FFFFFF !important;
     opacity: 1 !important;
     text-shadow: none !important;
-}
+}}
 
 .search-help,
 .search-help *,
-.search-help b {
+.search-help b {{
     color: #FFFFFF !important;
-}
+}}
 
 /* Make Upgrade Type label readable against the yacht background */
 div[data-testid="stSelectbox"] label,
@@ -484,25 +484,25 @@ div[data-testid="stSelectbox"] label *,
 .stSelectbox label,
 .stSelectbox label *,
 label[for*="Upgrade"],
-label[for*="upgrade"] {
+label[for*="upgrade"] {{
     color: #FFFFFF !important;
     font-weight: 900 !important;
     font-size: 1rem !important;
     text-shadow: 0 2px 6px rgba(0,0,0,0.85) !important;
-}
+}}
 
 /* Keep page sections from creating empty white bars */
 .dashboard-card:empty,
 .search-card:empty,
 .generated-output-card:empty,
-.record-card:empty {
+.record-card:empty {{
     display: none !important;
     height: 0 !important;
     padding: 0 !important;
     margin: 0 !important;
     border: 0 !important;
     box-shadow: none !important;
-}
+}}
 
 
 /* Clean final UI: readable labels, no empty white bars, Streamlit tab styling */
